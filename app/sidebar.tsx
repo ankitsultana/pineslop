@@ -2,7 +2,7 @@
 
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu"
-import { ChevronsUpDown, Calendar, Inbox, Search, Settings, Network, ChevronDown, FolderTree, ChevronUp, ChartBar, ChartColumn, ChartLine, Fish, Bell } from "lucide-react"
+import { ChevronsUpDown, Calendar, Inbox, Search, Settings, Network, ChevronDown, FolderTree, ChevronUp, ChartBar, ChartColumn, ChartLine, Fish, Bell, GlassWater } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Inter_Tight } from "next/font/google";
 
@@ -20,14 +20,14 @@ const items = [
     icon: Bell,
   },
   {
-    title: "Visualize",
+    title: "SQL Console",
     url: "/timeseries",
-    icon: ChartLine,
+    icon: GlassWater,
   },
   {
-    title: "Turbopuffer",
+    title: "Visualize",
     url: "/turbopuffer",
-    icon: Fish,
+    icon: ChartLine,
   },
   {
     title: "ElasticSearch",
