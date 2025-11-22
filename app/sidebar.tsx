@@ -1,16 +1,21 @@
-import { cookies } from "next/headers"
-import { Button } from "@/components/ui/button";
+"use client";
+
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { ChevronsUpDown, Calendar, Inbox, Search, Settings, Network, ChevronDown, FolderTree, ChevronUp, ChartBar, ChartColumn, ChartLine, Fish, Bell } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { interTight } from "./layout";
+import { Inter_Tight } from "next/font/google";
 
+export const interTight = Inter_Tight({
+  weight: '500',
+  subsets: ['latin'], // Specify subsets to reduce file size
+  display: 'swap', // Use 'swap' for better performance and less layout shift
+});
 
 // Menu items.
 const items = [
   {
-    title: "Notifications",
+    title: "Activity",
     url: "/query",
     icon: Bell,
   },
@@ -39,13 +44,13 @@ export default function MySidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <DropdownMenu>
-              <Avatar>
+              <Avatar className="mb-2">
                 <AvatarImage src="https://github.com/shadcn.png" alt="@shadcn" />
                 <AvatarFallback>CN</AvatarFallback>
               </Avatar>
               <DropdownMenuTrigger asChild>
                 <SidebarMenuButton>
-                  Select Workspace
+                  Apache Pinot
                   <ChevronsUpDown className="ml-auto" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>

@@ -43,7 +43,7 @@ function createDropdownFixedDynamicButton(fixedText: string, dynamicText: string
 
 export default function Home() {
   return (
-    <>
+      <div className="flex max-w-full">
       <DropdownMenu key="companies">
         <DropdownMenuTrigger className="max-w-min" asChild>
           { createButton("Top companies", greenBoard) }
@@ -64,16 +64,6 @@ export default function Home() {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      <DropdownMenu key="add-report-2">
-        <DropdownMenuTrigger className="max-w-min" asChild>
-          { createBlueProminentButton("  Add report") }
-        </DropdownMenuTrigger>
-        <DropdownMenuContent>
-          <DropdownMenuItem>
-            Something
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
       <DropdownMenu key="add-report-3">
         <DropdownMenuTrigger className="max-w-min" asChild>
           { createDropdownFixedDynamicButton("Sorted by", "order_timestamp_utc") }
@@ -84,6 +74,6 @@ export default function Home() {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-    </>
+      </div>
   );
 }
