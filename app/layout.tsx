@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { ThemeProvider } from "next-themes"
 import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import MySidebar from "./sidebar";
+import { NavigationMenuDemo } from "./nav";
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
@@ -21,12 +24,23 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-      <html lang="en">
-      <body className={`${inter.className} ${geistMono.variable} antialiased`}>
-        <ThemeProvider attribute="class" defaultTheme="system" forcedTheme="light">
+    <html suppressHydrationWarning>
+    <body className={`${inter.className} ${geistMono.variable} antialiased`}>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <SidebarProvider defaultOpen={true}>
+        <MySidebar />
+        <SidebarInset className="min-w-0">
+          <div className="flex items-center gap-4 border-b px-4 py-2">
+            <SidebarTrigger />
+            <div className="flex-1">
+              <NavigationMenuDemo />
+            </div>
+          </div>
           {children}
-        </ThemeProvider>
-      </body>
-    </html>
+        </SidebarInset>
+      </SidebarProvider>
+    </ThemeProvider>
+    </body>
+  </html>
   );
 }
