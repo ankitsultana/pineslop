@@ -13,7 +13,7 @@ const greenBoard = (
 
 function createButton(text: string, elem: JSX.Element) {
   return (
-    <Button variant="outline" className="px-2! py-2 gap-1">
+    <Button variant="outline" className="max-w-min px-2! py-2 gap-1">
       { elem }
       <span className="text-sm font-semibold">{ text }</span>
       <ChevronDown stroke="#888" />
@@ -23,15 +23,15 @@ function createButton(text: string, elem: JSX.Element) {
 
 export default function Home() {
   return (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          { createButton("All Companies", greenBoard) }
-        </DropdownMenuTrigger>
-        <DropdownMenuContent>
-        <DropdownMenuItem>
-          Something
-          </DropdownMenuItem>
-        </DropdownMenuContent>
+    <DropdownMenu>
+      <DropdownMenuTrigger className="max-w-min" asChild>
+        { createButton("All Companies", greenBoard) }
+      </DropdownMenuTrigger>
+      <DropdownMenuContent>
+      <DropdownMenuItem>
+        Something
+        </DropdownMenuItem>
+      </DropdownMenuContent>
     </DropdownMenu>
   );
 }
