@@ -2,16 +2,17 @@ import { cookies } from "next/headers"
 import { Button } from "@/components/ui/button";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu"
-import { ChevronsUpDown, Calendar, Inbox, Search, Settings, Network, ChevronDown, FolderTree, ChevronUp, ChartBar, ChartColumn, ChartLine, Fish } from "lucide-react"
+import { ChevronsUpDown, Calendar, Inbox, Search, Settings, Network, ChevronDown, FolderTree, ChevronUp, ChartBar, ChartColumn, ChartLine, Fish, Bell } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { interTight } from "./layout";
 
 
 // Menu items.
 const items = [
   {
-    title: "SQL Console",
+    title: "Notifications",
     url: "/query",
-    icon: Search,
+    icon: Bell,
   },
   {
     title: "Visualize",
@@ -33,7 +34,7 @@ const items = [
 
 export default function MySidebar() {
   return (
-    <Sidebar className="font-bold fg-[rgb(251,251,251)]" collapsible="icon">
+    <Sidebar className="font-bold fg-[rgb(251,251,251)] text-[rgb(28,29,31)]!" collapsible="icon">
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -68,8 +69,8 @@ export default function MySidebar() {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <a href={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
+                      <item.icon className="text-[rgb(103,104,108)]" />
+                      <span className={`${interTight.className} text-[rgb(28,29,31)]`}>{item.title}</span>
                     </a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
