@@ -1,27 +1,33 @@
-import { cookies } from "next/headers"
-import { Button } from "@/components/ui/button";
+"use client";
+
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu"
-import { ChevronsUpDown, Calendar, Inbox, Search, Settings, Network, ChevronDown, FolderTree, ChevronUp, ChartBar, ChartColumn, ChartLine, Fish } from "lucide-react"
-import Image from "next/image";
+import { ChevronsUpDown, Calendar, Inbox, Search, Settings, Network, ChevronDown, FolderTree, ChevronUp, ChartBar, ChartColumn, ChartLine, Fish, Bell, GlassWater } from "lucide-react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Inter_Tight } from "next/font/google";
 
+export const interTight = Inter_Tight({
+  weight: '500',
+  subsets: ['latin'], // Specify subsets to reduce file size
+  display: 'swap', // Use 'swap' for better performance and less layout shift
+});
 
 // Menu items.
 const items = [
   {
-    title: "SQL Console",
+    title: "Activity",
     url: "/query",
-    icon: Search,
+    icon: Bell,
+  },
+  {
+    title: "SQL Console",
+    url: "/timeseries",
+    icon: GlassWater,
   },
   {
     title: "Visualize",
-    url: "/timeseries",
-    icon: ChartLine,
-  },
-  {
-    title: "Turbopuffer",
     url: "/turbopuffer",
-    icon: Fish,
+    icon: ChartLine,
   },
   {
     title: "ElasticSearch",
@@ -33,14 +39,18 @@ const items = [
 
 export default function MySidebar() {
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar className="font-bold fg-[rgb(251,251,251)] text-[rgb(28,29,31)]!" collapsible="icon">
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
             <DropdownMenu>
+              <Avatar className="mb-2">
+                <AvatarImage src="https://github.com/shadcn.png" alt="@shadcn" />
+                <AvatarFallback>CN</AvatarFallback>
+              </Avatar>
               <DropdownMenuTrigger asChild>
                 <SidebarMenuButton>
-                  Select Workspace
+                  Apache Pinot
                   <ChevronsUpDown className="ml-auto" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
@@ -64,8 +74,8 @@ export default function MySidebar() {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <a href={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
+                      <item.icon className="text-[rgb(103,104,108)]" />
+                      <span className={`${interTight.className} text-[rgb(28,29,31)]`}>{item.title}</span>
                     </a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

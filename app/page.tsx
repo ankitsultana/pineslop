@@ -13,9 +13,9 @@ const greenBoard = (
 
 function createButton(text: string, elem: JSX.Element) {
   return (
-    <Button variant="outline" className="max-w-min px-2! py-2 gap-1">
+    <Button variant="outline" className="max-w-min px-2! py-2 gap-1 border-[0.1px]">
       { elem }
-      <span className="text-sm font-semibold">{ text }</span>
+      <span className="text-sm font-semibold text-[rgb(28,29,31)]">{ text }</span>
       <ChevronDown stroke="#888" />
     </Button>
   )
@@ -43,10 +43,10 @@ function createDropdownFixedDynamicButton(fixedText: string, dynamicText: string
 
 export default function Home() {
   return (
-    <>
+      <div className="flex max-w-full">
       <DropdownMenu key="companies">
         <DropdownMenuTrigger className="max-w-min" asChild>
-          { createButton("All Companies", greenBoard) }
+          { createButton("Top companies", greenBoard) }
         </DropdownMenuTrigger>
         <DropdownMenuContent>
           <DropdownMenuItem>
@@ -64,16 +64,6 @@ export default function Home() {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      <DropdownMenu key="add-report-2">
-        <DropdownMenuTrigger className="max-w-min" asChild>
-          { createBlueProminentButton("  Add report") }
-        </DropdownMenuTrigger>
-        <DropdownMenuContent>
-          <DropdownMenuItem>
-            Something
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
       <DropdownMenu key="add-report-3">
         <DropdownMenuTrigger className="max-w-min" asChild>
           { createDropdownFixedDynamicButton("Sorted by", "order_timestamp_utc") }
@@ -84,6 +74,6 @@ export default function Home() {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-    </>
+      </div>
   );
 }

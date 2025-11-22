@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { ThemeProvider } from "next-themes"
-import { Geist, Geist_Mono, Inter } from "next/font/google";
+import { Geist, Inter_Tight, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import MySidebar from "./sidebar";
@@ -17,6 +17,11 @@ export const metadata: Metadata = {
 };
 
 const inter = Inter({ subsets: ['latin'], weight: '400', display: 'swap' });
+export const interTight = Inter_Tight({
+  weight: '500',
+  subsets: ['latin'], // Specify subsets to reduce file size
+  display: 'swap', // Use 'swap' for better performance and less layout shift
+});
 
 export default function RootLayout({
   children,
