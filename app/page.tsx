@@ -1,9 +1,6 @@
-import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { ChevronDown } from "lucide-react";
-
-// segoe-ui
 import { LayoutGrid } from "lucide-react"; // or Squares2X2 from Heroicons
 import { JSX } from "react";
 
