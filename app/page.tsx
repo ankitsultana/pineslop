@@ -5,30 +5,34 @@ import { ChevronDown } from "lucide-react";
 
 // segoe-ui
 import { LayoutGrid } from "lucide-react"; // or Squares2X2 from Heroicons
+import { JSX } from "react";
+
+const greenBoard = (
+  <span className="flex h-6 w-6 items-center justify-center rounded-[30%] bg-emerald-500">
+    <LayoutGrid className="h-3 w-3 text-white" />
+  </span>
+);
 
 
-function createButton() {
+function createButton(text: string, elem: JSX.Element) {
   return (
-    <span className="flex h-6 w-6 items-center justify-center rounded-[30%] bg-emerald-500">
-      <LayoutGrid className="h-3 w-3 text-white" />
-    </span>
+    <Button variant="outline" className="px-2! py-2 gap-1">
+      { elem }
+      <span className="text-sm font-semibold">{ text }</span>
+      <ChevronDown stroke="#888" />
+    </Button>
   )
 }
 
 export default function Home() {
-
   return (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="px-0 py-2">
-            { createButton() }
-            <span className="text-sm font-semibold">All Companies</span>
-            <ChevronDown stroke="#888" />
-          </Button>
+          { createButton("All Companies", greenBoard) }
         </DropdownMenuTrigger>
         <DropdownMenuContent>
         <DropdownMenuItem>
-          Top Companies
+          Something
           </DropdownMenuItem>
         </DropdownMenuContent>
     </DropdownMenu>
