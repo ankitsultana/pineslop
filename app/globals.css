@@ -117,6 +117,9 @@
   .light {
     color: rgb(28, 29, 31);
   }
+  .dark {
+    color: rgb(251, 251, 251);
+  }
   svg {
     color: rgb(103, 104, 108);
   }
