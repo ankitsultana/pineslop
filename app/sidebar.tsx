@@ -104,7 +104,7 @@ export function createSidebarFooter() {
 
 export default function MySidebar() {
   return (
-    <Sidebar className="font-bold fg-[rgb(251,251,251)] text-[rgb(28,29,31)]!" collapsible="icon">
+    <Sidebar id="my-sidebar" className="fg-[rgb(251,251,251)] text-[rgb(28,29,31)]!" collapsible="icon">
       { createSidebarHeader() }
       <SidebarContent>
         <SidebarGroup>
@@ -114,8 +114,8 @@ export default function MySidebar() {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <a href={item.url}>
-                      <item.icon className="text-[rgb(103,104,108)]" />
-                      <span className={`${interTight.className} text-[rgb(28,29,31)]`}>{item.title}</span>
+                      <item.icon />
+                      <span>{item.title}</span>
                     </a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -123,13 +123,15 @@ export default function MySidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        <SidebarMenu>
+        <SidebarGroup>
+          <SidebarGroupContent>
+          <SidebarMenu>
           <Collapsible defaultOpen className="group/collapsible">
             <SidebarMenuItem>
               <CollapsibleTrigger asChild>
                 <SidebarMenuButton>
-                  <Settings className="text-[rgb(103,104,108)]" />
-                  <span className={`${interTight.className} text-[rgb(28,29,31)]`}>Manage</span>
+                  <Settings />
+                  <span>Manage</span>
                   <ChevronDown className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
                 </SidebarMenuButton>
               </CollapsibleTrigger>
@@ -161,6 +163,8 @@ export default function MySidebar() {
             </SidebarMenuItem>
           </Collapsible>
         </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
       { createSidebarFooter() }
     </Sidebar>
