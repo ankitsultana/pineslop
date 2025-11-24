@@ -34,11 +34,6 @@ const items = [
     title: "Visualize",
     url: "/turbopuffer",
     icon: ChartLine,
-  },
-  {
-    title: "ElasticSearch",
-    url: "/es",
-    icon: Fish,
   }
 ]
 

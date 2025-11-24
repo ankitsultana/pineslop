@@ -27,9 +27,9 @@ function createCombobox() {
           variant="ghost"
           role="combobox"
           aria-expanded={open}
-          className="w-[200px] justify-between border-[0.5px] font-semibold bg-[rgb(244,245,246)] text-[rgb(28,29,31)]"
+          className="w-auto justify-between border-[0.5px] font-semibold bg-[rgb(244,245,246)] text-[rgb(28,29,31)]"
         >
-          bullsye-phx-prod-phx
+          cluster-palladium-us-east1
           <ChevronsUpDown className="opacity-50" />
         </Button>
       </PopoverTrigger>
