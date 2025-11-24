@@ -114,7 +114,9 @@
 
 #my-sidebar {
   font-family: "Inter Tight";
-  color: rgb(28, 29, 31);
+  .light {
+    color: rgb(28, 29, 31);
+  }
   svg {
     color: rgb(103, 104, 108);
   }

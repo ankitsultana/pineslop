@@ -2,7 +2,7 @@
 
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem, SidebarProvider, SidebarSeparator, SidebarTrigger } from "@/components/ui/sidebar";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu"
-import { ChevronsUpDown, Calendar, Inbox, Search, Settings, Network, ChevronDown, FolderTree, ChevronUp, ChartBar, ChartColumn, ChartLine, Fish, Bell, GlassWater, MessagesSquare, ChartBarStacked, ChartBarStackedIcon } from "lucide-react"
+import { ChevronsUpDown, Calendar, Inbox, Search, Settings, Network, ChevronDown, FolderTree, ChevronUp, ChartBar, ChartColumn, ChartLine, Fish, Bell, GlassWater, MessagesSquare, ChartBarStacked, ChartBarStackedIcon, BottleWine } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Inter_Tight } from "next/font/google";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -44,9 +44,10 @@ function createSidebarHeader() {
         <SidebarMenuItem>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <SidebarMenuButton>
-                Apache Pinot
-                <ChevronsUpDown className="ml-auto" />
+              <SidebarMenuButton className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center">
+                <BottleWine />
+                <span className="group-data-[collapsible=icon]:hidden">Apache Pinot</span>
+                <ChevronsUpDown className="ml-auto group-data-[collapsible=icon]:hidden" />
               </SidebarMenuButton>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-[--radix-popper-anchor-width]">
@@ -104,7 +105,7 @@ export function createSidebarFooter() {
 
 export default function MySidebar() {
   return (
-    <Sidebar id="my-sidebar" className="fg-[rgb(251,251,251)] text-[rgb(28,29,31)]!" collapsible="icon">
+    <Sidebar id="my-sidebar" collapsible="icon">
       { createSidebarHeader() }
       <SidebarContent>
         <SidebarGroup>
