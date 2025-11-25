@@ -1,5 +1,14 @@
 import { Button } from "@/components/ui/button";
-import { ArrowDownAZ, ChartArea, ChevronDown, Filter, LayoutGrid } from "lucide-react";
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemHeader,
+  ItemMedia,
+  ItemTitle,
+} from "@/components/ui/item";
+import { ArrowDownAZ, ChartArea, ChevronDown, Filter, LayoutGrid, Link } from "lucide-react";
 import { JSX } from "react";
 
 const greenBoard = (
@@ -52,50 +61,68 @@ const items: CardDetails[] = [
     'comment': 'I deleted production. Happy Thanksgiving.',
     'author': 'Ankit Sultana',
     'dt': new Date('2025-11-23T03:00:00Z'),
-    'contextId': 'uuid-1',
+    'contextId': 'server-1.host.ankitsultana.com',
     'pp': 'me.jpeg',
   },
   {
     'comment': 'Wth man',
     'author': 'Ankit Sultana',
     'dt': new Date('2025-11-23T03:00:00Z'),
-    'contextId': 'uuid-2',
+    'contextId': 'adsPerformance',
     'pp': '/me.jpeg',
   }
 ]
 
 function createCard(cardDetails: CardDetails[]) {
   return cardDetails.map((card) => (
-    <div
+    <Item
       key={card.contextId}
-      className="rounded-lg borde-0 bg-background p-4 shadow-sm gap-2 w-full items-start"
+      variant="outline"
+      className="w-[60%]"
     >
-      <div className="flex items-center gap-2">
+      <ItemMedia variant="image">
         <img
           src={card.pp}
           alt={card.author}
-          className="w-8 h-8 rounded-full object-cover"
         />
-        <div>
-          <div className="font-semibold text-sm">{card.author}</div>
-          <div className="text-xs text-black">
-            {card.dt.toDateString()}
-          </div>
-        </div>
-      </div>
-      <div className="text-gray-800 mt-2">{card.comment}</div>
-    </div>
+      </ItemMedia>
+      <ItemContent>
+        <ItemHeader>
+          <ItemTitle className="gap-0 flex flex-col items-start text-base font-semibold">
+            <span>{card.author}</span>
+            <span className="text-xs text-black font-normal">
+              {card.dt.toDateString()}
+            </span>
+          </ItemTitle>
+          <ItemActions>
+            <Button
+              variant="outline"
+              size="sm"
+              className="py-1 text-xs px-2 rounded-xl border-[rgb(230,251,255)] bg-[rgb(255,255,255)] text-[rgb(64,128,242)] shadow-none border-[1px]"
+            >
+              <span className="font-semibold"><Link className="size-3!" /></span>
+              {card.contextId}
+            </Button>
+          </ItemActions>
+        </ItemHeader>
+        <ItemDescription className="text-gray-800 mt-1">
+          {card.comment}
+        </ItemDescription>
+      </ItemContent>
+    </Item>
   ))
 }
 
 export default function Activity() {
   return (
     <>
-    <div className="flex flex-row p-2 gap-4 w-full">
+    <div className="flex flex-row w-full p-2">
       { createDropdownFixedDynamicButton("Filter", "some-us-east1-cluster", <Filter />) }
-      { createBlueProminentButton("Add comment") }
+      <div className="ml-auto">
+        { createBlueProminentButton("Add comment") }
+      </div>
     </div>
-    <div className="flex flex-col p-2 pt-4 pl-4 gap-2 w-[80%] items-center">
+    <div className="flex flex-col p-2 pt-4 pl-4 gap-2 w-full items-center">
       { createCard(items) }
     </div>
     </>
