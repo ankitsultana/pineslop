@@ -43,7 +43,7 @@ function createDropdownFixedDynamicButton(fixedText: string, dynamicText: string
 
 export default function Home() {
   return (
-      <div className="flex max-w-full">
+      <div className="flex max-w-full bg-amber-50 p-2 gap-2">
       <DropdownMenu key="companies">
         <DropdownMenuTrigger className="max-w-min" asChild>
           { createButton("Top companies", greenBoard) }
