@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Inter_Tight } from "next/font/google";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 export const interTight = Inter_Tight({
   weight: '500',
@@ -20,21 +21,25 @@ const items = [
     title: "Activity Log",
     url: "/query",
     icon: Bell,
+    style: "bg-[rgb(99,91,255)] fill-amber-50 stroke-white",
   },
   {
     title: "Comments",
     url: "/query",
     icon: MessagesSquare,
+    style: "bg-[rgb(252,132,167)] fill-amber-50 stroke-white",
   },
   {
     title: "SQL Console",
     url: "/timeseries",
     icon: GlassWater,
+    style: "bg-[rgb(245,186,1)] fill-amber-50 stroke-white",
   },
   {
     title: "Visualize",
     url: "/turbopuffer",
     icon: ChartLine,
+    style: "bg-[rgb(255,91,90)] fill-amber-50 stroke-white",
   }
 ]
 
@@ -116,7 +121,7 @@ export default function MySidebar() {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <a href={item.url}>
-                      <item.icon className="bg-[rgb(22,175,214)] fill-amber-50 stroke-white p-1 rounded size-5!" />
+                      <item.icon className={cn(item.style, "p-1 rounded size-5!")} />
                       <span>{item.title}</span>
                     </a>
                   </SidebarMenuButton>
