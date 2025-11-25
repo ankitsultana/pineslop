@@ -44,6 +44,7 @@ interface CardDetails {
   author: string,
   dt: Date,
   contextId: string,
+  pp: string,
 }
 
 const items: CardDetails[] = [
@@ -52,12 +53,14 @@ const items: CardDetails[] = [
     'author': 'Ankit Sultana',
     'dt': new Date('2025-11-23T03:00:00Z'),
     'contextId': 'uuid-1',
+    'pp': 'me.jpeg',
   },
   {
     'comment': 'Wth man',
     'author': 'Ankit Sultana',
     'dt': new Date('2025-11-23T03:00:00Z'),
     'contextId': 'uuid-2',
+    'pp': '/me.jpeg',
   }
 ]
 
@@ -65,18 +68,17 @@ function createCard(cardDetails: CardDetails[]) {
   return cardDetails.map((card) => (
     <div
       key={card.contextId}
-      className="rounded-lg borde-0 bg-gray-100 p-4 shadow-0 gap-2 w-full items-start"
+      className="rounded-lg borde-0 bg-background p-4 shadow-sm gap-2 w-full items-start"
     >
       <div className="flex items-center gap-2">
-        <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center font-bold text-gray-500 text-xs uppercase">
-          {card.author
-            .split(" ")
-            .map((n) => n[0])
-            .join("")}
-        </div>
+        <img
+          src={card.pp}
+          alt={card.author}
+          className="w-8 h-8 rounded-full object-cover"
+        />
         <div>
-          <div className="font-medium text-sm">{card.author}</div>
-          <div className="text-xs text-gray-400">
+          <div className="font-semibold text-sm">{card.author}</div>
+          <div className="text-xs text-black">
             {card.dt.toDateString()}
           </div>
         </div>
