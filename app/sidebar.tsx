@@ -19,25 +19,25 @@ export const interTight = Inter_Tight({
 const items = [
   {
     title: "Activity Log",
-    url: "/query",
+    url: "/activity",
     icon: Bell,
     style: "bg-[rgb(99,91,255)] fill-amber-50 stroke-white",
   },
   {
     title: "Comments",
-    url: "/query",
+    url: "/comments",
     icon: MessagesSquare,
     style: "bg-[rgb(252,132,167)] fill-amber-50 stroke-white",
   },
   {
     title: "SQL Console",
-    url: "/timeseries",
+    url: "/query",
     icon: GlassWater,
     style: "bg-[rgb(245,186,1)] fill-amber-50 stroke-white",
   },
   {
     title: "Visualize",
-    url: "/turbopuffer",
+    url: "/timeseries",
     icon: ChartLine,
     style: "bg-[rgb(255,91,90)] fill-amber-50 stroke-white",
   }
