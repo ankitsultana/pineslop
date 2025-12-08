@@ -1,0 +1,15 @@
+{
+  "clusters": {
+    "cluster-palladium-us-east1": {
+      "url": "http://localhost:9000",
+      "headers": {}
+    },
+    "cluster-titanium-eu-west1": {
+      "url": "http://localhost:19000",
+      "headers": {
+        "Authorization": "Bearer ${PINOT_EU_TOKEN}"
+      }
+    }
+  }
+}
+

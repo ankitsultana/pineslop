@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { Moon, Sun, Github, BookOpen, Sheet, ChevronsUpDown } from "lucide-react"
+import { Moon, Sun, Github, BookOpen, Sheet, ChevronsUpDown, Check } from "lucide-react"
 import { useTheme } from "next-themes"
 
 import {
@@ -14,12 +14,46 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import { Button } from "@/components/ui/button"
-import { Separator } from "@radix-ui/react-separator"
-import { Popover, PopoverTrigger } from "@/components/ui/popover"
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
+import { cn } from "@/lib/utils"
 
-function createCombobox() {
+function ClusterSelector() {
   const [open, setOpen] = React.useState(false);
-  const [value, setValue] = React.useState("");
+  const [selectedCluster, setSelectedCluster] = React.useState<string>("");
+  const [clusters, setClusters] = React.useState<string[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    async function fetchClusters() {
+      try {
+        const response = await fetch('/api/clusters');
+        const data = await response.json();
+        setClusters(data.clusterIds || []);
+        // Set the first cluster as default if none selected
+        if (data.clusterIds?.length > 0 && !selectedCluster) {
+          setSelectedCluster(data.clusterIds[0]);
+        }
+      } catch (error) {
+        console.error('Failed to fetch clusters:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchClusters();
+  }, []);
+
+  const displayValue = loading 
+    ? "Loading..." 
+    : selectedCluster || "Select cluster...";
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -27,14 +61,43 @@ function createCombobox() {
           variant="ghost"
           role="combobox"
           aria-expanded={open}
-          className="w-auto justify-between border-[0.5px] font-semibold bg-[rgb(244,245,246)] text-[rgb(28,29,31)]"
+          className="w-auto justify-between border-[0.5px] font-semibold bg-[rgb(244,245,246)] text-[rgb(28,29,31)] dark:bg-zinc-800 dark:text-zinc-100"
+          disabled={loading}
         >
-          cluster-palladium-us-east1
-          <ChevronsUpDown className="opacity-50" />
+          {displayValue}
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
+      <PopoverContent className="w-[280px] p-0" align="end">
+        <Command>
+          <CommandInput placeholder="Search clusters..." />
+          <CommandList>
+            <CommandEmpty>No cluster found.</CommandEmpty>
+            <CommandGroup heading="Available Clusters">
+              {clusters.map((cluster) => (
+                <CommandItem
+                  key={cluster}
+                  value={cluster}
+                  onSelect={(value) => {
+                    setSelectedCluster(value);
+                    setOpen(false);
+                  }}
+                >
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      selectedCluster === cluster ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  {cluster}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
     </Popover>
-  )
+  );
 }
 
 export function NavigationMenuDemo() {
@@ -68,7 +131,7 @@ export function NavigationMenuDemo() {
         </BreadcrumbList>
       </Breadcrumb>
       <div className="flex items-center gap-2 ml-auto">
-        { createCombobox() }
+        <ClusterSelector />
         <Button variant="ghost" size="icon" asChild>
           <Link href="https://docs.pinot.apache.org/" target="_blank" aria-label="Documentation">
             <BookOpen className="size-4" />

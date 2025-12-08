@@ -117,7 +117,7 @@ export default function Activity() {
   return (
     <>
     <div className="flex flex-row w-full p-2">
-      { createDropdownFixedDynamicButton("Filter", "some-us-east1-cluster", <Filter />) }
+      { createDropdownFixedDynamicButton("Cluster", "some-us-east1-cluster", <Filter />) }
       <div className="ml-auto">
         { createBlueProminentButton("Add comment") }
       </div>
