@@ -1,0 +1,27 @@
+{
+  "datasources": {
+    "pinot-local": {
+      "type": "cluster",
+      "url": "http://localhost:9000/sql",
+      "headers": {},
+      "icon": "database"
+    },
+    "pinot-production": {
+      "type": "cluster",
+      "url": "http://pinot-prod.example.com:9000/sql",
+      "headers": {
+        "Authorization": "Bearer ${PINOT_PROD_TOKEN}"
+      },
+      "icon": "server"
+    },
+    "federated-analytics": {
+      "type": "federated",
+      "url": "http://trino.example.com:8080/v1/statement",
+      "headers": {
+        "X-Trino-User": "analytics"
+      },
+      "icon": "network"
+    }
+  }
+}
+

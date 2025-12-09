@@ -37,7 +37,7 @@ const items = [
   },
   {
     title: "Visualize",
-    url: "/timeseries",
+    url: "/visualize",
     icon: ChartLine,
     style: "bg-[rgb(255,91,90)] fill-amber-50 stroke-white",
   }
