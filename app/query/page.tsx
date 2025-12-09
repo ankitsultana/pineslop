@@ -8,7 +8,7 @@ import {
   AlertDescription,
   AlertTitle,
 } from "@/components/ui/alert";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PinotResultTable } from "@/app/models/result";
+import { PinotResultTable, SortConfig, DEFAULT_PAGE_SIZE } from "@/app/models/result";
 import { executePinotQuery, PinotQueryError } from "@/app/utils/pinot";
 import type { PinotQueryResponse } from "@/app/utils/pinot";
 import MyQueryEditor from "../utils/editor";
@@ -93,6 +93,11 @@ function QueryOptionsPanel({
   );
 }
 
+// Helper to create a signature for columns to detect changes
+function getColumnSignature(response: PinotQueryResponse | null): string {
+  if (!response) return "";
+  return response.resultTable.dataSchema.columnNames.join("|");
+}
 
 export default function MyQuery() {
   // Always start with empty string to match server render
@@ -103,6 +108,15 @@ export default function MyQuery() {
   const isInitialMount = useRef(true);
   const [timeoutValue, setTimeoutValue] = useState("");
   const [timeoutUnit, setTimeoutUnit] = useState<TimeoutUnit>("ms");
+
+  // Table display settings that persist across query runs
+  const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
+  const [visibleColumns, setVisibleColumns] = useState<Set<number>>(new Set());
+  const [lastColumnSignature, setLastColumnSignature] = useState<string>("");
+
+  // Pagination settings
+  const [currentPage, setCurrentPage] = useState(0);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
 
   // Load query from localStorage after mount (client-side only)
   useEffect(() => {
@@ -122,12 +136,27 @@ export default function MyQuery() {
     }
   }, [query]);
 
+  // Reset table settings when columns change
+  const handleNewResults = useCallback((response: PinotQueryResponse) => {
+    const newSignature = getColumnSignature(response);
+    const numColumns = response.resultTable.dataSchema.columnNames.length;
+
+    if (newSignature !== lastColumnSignature) {
+      // Columns changed - reset to defaults
+      setSortConfig(null);
+      setVisibleColumns(new Set(Array.from({ length: numColumns }, (_, i) => i)));
+      setCurrentPage(0); // Reset to first page
+      setLastColumnSignature(newSignature);
+    }
+
+    setResults(response);
+  }, [lastColumnSignature]);
+
   const handleRunQuery = useCallback(async () => {
     if (!query.trim()) return;
 
     setLoading(true);
     setError(null);
-    setResults(null);
 
     let timeoutMs: number | undefined;
     if (timeoutValue.trim().length > 0) {
@@ -148,7 +177,9 @@ export default function MyQuery() {
       }
 
       if (response) {
-        setResults(response);
+        handleNewResults(response);
+      } else {
+        setResults(null);
       }
     } catch (error) {
       console.error("Error executing query:", error);
@@ -157,10 +188,11 @@ export default function MyQuery() {
           ? new PinotQueryError(`Failed to execute query: ${error.message}`)
           : new PinotQueryError("Failed to execute query: Unknown error");
       setError(errorMessage);
+      setResults(null);
     } finally {
       setLoading(false);
     }
-  }, [query, timeoutUnit, timeoutValue]);
+  }, [query, timeoutUnit, timeoutValue, handleNewResults]);
 
   // Add keyboard shortcut for Cmd+Enter (or Ctrl+Enter) to run query
   useEffect(() => {
@@ -233,7 +265,19 @@ export default function MyQuery() {
               {error.message || "An error occurred while executing the query."}
             </AlertDescription>
           </Alert>)}
-          {results && <PinotResultTable response={results} />}
+          {results && (
+            <PinotResultTable
+              response={results}
+              sortConfig={sortConfig}
+              visibleColumns={visibleColumns}
+              currentPage={currentPage}
+              pageSize={pageSize}
+              onSortChange={setSortConfig}
+              onVisibleColumnsChange={setVisibleColumns}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={setPageSize}
+            />
+          )}
         </ResizablePanel>
       </ResizablePanelGroup>
     </div>
