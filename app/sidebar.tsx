@@ -140,57 +140,22 @@ export default function MySidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton>
-                  
-                <Cuboid className="bg-[rgb(254,145,57)] fill-amber-50 stroke-white p-1 rounded size-5!" />
-                  <span>Dashboards</span>
+                <SidebarMenuButton asChild>
+                  <a href="/dashboards">
+                    <Cuboid className="bg-[rgb(254,145,57)] fill-amber-50 stroke-white p-1 rounded size-5!" />
+                    <span>Dashboards</span>
+                  </a>
                 </SidebarMenuButton>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <SidebarMenuAction className="group-data-[collapsible=icon]:block!">
-                      <MoreVertical />
-                    </SidebarMenuAction>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent side="right" align="start" className="w-48">
-                    <DropdownMenuItem asChild>
-                      <a href="/tables">
-                        <span>Create</span>
-                      </a>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <a href="/tenants">
-                        <span>Browse</span>
-                      </a>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
               </SidebarMenuItem>
             </SidebarMenu>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton>
-                  <Pin className="bg-[rgba(254,57,57,0.82)] fill-amber-50 stroke-white p-1 rounded size-5!" />
-                  <span>Saved Queries</span>
+                <SidebarMenuButton asChild>
+                  <a href="/saved-queries">
+                    <Pin className="bg-[rgba(254,57,57,0.82)] fill-amber-50 stroke-white p-1 rounded size-5!" />
+                    <span>Saved Queries</span>
+                  </a>
                 </SidebarMenuButton>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <SidebarMenuAction className="group-data-[collapsible=icon]:block!">
-                      <MoreVertical />
-                    </SidebarMenuAction>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent side="right" align="start" className="w-48">
-                    <DropdownMenuItem asChild>
-                      <a href="/tables">
-                        <span>Create</span>
-                      </a>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <a href="/tenants">
-                        <span>Browse</span>
-                      </a>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
