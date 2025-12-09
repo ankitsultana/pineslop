@@ -199,34 +199,12 @@ export default function MySidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton>
-                  <Settings className="bg-[rgba(0,0,0,0.32)] fill-white stroke-white p-1 rounded size-5!" />
-                  <span>Manage</span>
+                <SidebarMenuButton asChild className={cn(pathname.startsWith('/manage') && "bg-sidebar-accent text-sidebar-accent-foreground")}>
+                  <a href="/manage">
+                    <Settings className="bg-[rgba(0,0,0,0.32)] fill-white stroke-white p-1 rounded size-5!" />
+                    <span>Manage</span>
+                  </a>
                 </SidebarMenuButton>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <SidebarMenuAction className="group-data-[collapsible=icon]:block!">
-                      <MoreVertical />
-                    </SidebarMenuAction>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent side="right" align="start" className="w-48">
-                    <DropdownMenuItem asChild>
-                      <a href="/tables">
-                        <span>Tables</span>
-                      </a>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <a href="/tenants">
-                        <span>Tenants</span>
-                      </a>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <a href="/minions">
-                        <span>Minions</span>
-                      </a>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
