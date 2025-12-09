@@ -247,13 +247,6 @@ export default function TablesPage() {
   return (
     <div className="p-6">
       <div className="mb-6">
-        <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
-          <a href="/manage" className="hover:underline">Manage</a>
-          <span>/</span>
-          <a href={`/manage/${clusterId}`} className="hover:underline">{clusterId}</a>
-          <span>/</span>
-          <span>Tables</span>
-        </div>
         <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
           <Table2 className="h-6 w-6" />
           Tables

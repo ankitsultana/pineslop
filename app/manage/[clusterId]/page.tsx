@@ -70,15 +70,13 @@ export default function ManageClusterPage() {
   return (
     <div className="p-6">
       <div className="mb-6">
-        <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
-          <a href="/manage" className="hover:underline">Manage</a>
-          <span>/</span>
-          <span>{clusterId}</span>
-        </div>
         <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
           <Server className="h-6 w-6" />
           {clusterId}
         </h1>
+        <p className="text-muted-foreground text-sm mt-1">
+          Cluster overview
+        </p>
       </div>
       
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
