@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
-import { Table2, Copy, Check, Search, ChevronLeft, ChevronRight, Layers } from "lucide-react"
+import { Table2, Copy, Check, Search, ChevronLeft, ChevronRight, Layers, FileJson } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -33,6 +33,27 @@ interface TableConfig {
   tableName?: string
 }
 
+interface FieldSpec {
+  name: string
+  dataType: string
+  singleValueField?: boolean
+}
+
+interface TableSchema {
+  schemaName?: string
+  dimensionFieldSpecs?: FieldSpec[]
+  metricFieldSpecs?: FieldSpec[]
+  dateTimeFieldSpecs?: FieldSpec[]
+  primaryKeyColumns?: string[]
+}
+
+interface SchemaField {
+  column: string
+  type: string
+  fieldType: "DIMENSION" | "METRIC" | "DATE_TIME"
+  multiValue: boolean
+}
+
 interface SegmentsData {
   OFFLINE?: string[]
   REALTIME?: string[]
@@ -52,6 +73,14 @@ export default function TableDetailPage() {
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState<string | null>(null)
   const [copied, setCopied] = React.useState<string | null>(null)
+
+  // Schema state
+  const [schema, setSchema] = React.useState<TableSchema | null>(null)
+  const [schemaLoading, setSchemaLoading] = React.useState(true)
+  const [schemaError, setSchemaError] = React.useState<string | null>(null)
+
+  // Config tab state
+  const [activeConfigTab, setActiveConfigTab] = React.useState<string | null>(null)
 
   // Segments state
   const [segments, setSegments] = React.useState<SegmentInfo[]>([])
@@ -84,6 +113,27 @@ export default function TableDetailPage() {
   }, [clusterId, tableName])
 
   React.useEffect(() => {
+    async function fetchSchema() {
+      setSchemaLoading(true)
+      setSchemaError(null)
+      try {
+        const response = await fetch(`/api/clusters/${clusterId}/tables/${encodeURIComponent(tableName)}/schema`)
+        if (!response.ok) {
+          throw new Error("Failed to fetch schema")
+        }
+        const data: TableSchema = await response.json()
+        setSchema(data)
+      } catch (err) {
+        console.error("Error fetching schema:", err)
+        setSchemaError("Failed to fetch schema from cluster")
+      } finally {
+        setSchemaLoading(false)
+      }
+    }
+    fetchSchema()
+  }, [clusterId, tableName])
+
+  React.useEffect(() => {
     async function fetchSegments() {
       setSegmentsLoading(true)
       setSegmentsError(null)
@@ -113,6 +163,48 @@ export default function TableDetailPage() {
     }
     fetchSegments()
   }, [clusterId, tableName])
+
+  // Flatten schema fields into a single array for display
+  const schemaFields = React.useMemo<SchemaField[]>(() => {
+    if (!schema) return []
+    
+    const fields: SchemaField[] = []
+    
+    if (schema.dimensionFieldSpecs) {
+      schema.dimensionFieldSpecs.forEach(spec => {
+        fields.push({
+          column: spec.name,
+          type: spec.dataType,
+          fieldType: "DIMENSION",
+          multiValue: spec.singleValueField === false,
+        })
+      })
+    }
+    
+    if (schema.metricFieldSpecs) {
+      schema.metricFieldSpecs.forEach(spec => {
+        fields.push({
+          column: spec.name,
+          type: spec.dataType,
+          fieldType: "METRIC",
+          multiValue: spec.singleValueField === false,
+        })
+      })
+    }
+    
+    if (schema.dateTimeFieldSpecs) {
+      schema.dateTimeFieldSpecs.forEach(spec => {
+        fields.push({
+          column: spec.name,
+          type: spec.dataType,
+          fieldType: "DATE_TIME",
+          multiValue: spec.singleValueField === false,
+        })
+      })
+    }
+    
+    return fields
+  }, [schema])
 
   // Filter and paginate segments
   const filteredSegments = React.useMemo(() => {
@@ -166,109 +258,192 @@ export default function TableDetailPage() {
         </p>
       </div>
 
-      {loading ? (
-        <div className="space-y-4">
-          <Skeleton className="h-10 w-[200px]" />
-          <Skeleton className="h-[500px] w-full" />
-        </div>
-      ) : error ? (
-        <div className="flex items-center justify-center h-[400px] border border-dashed rounded-lg">
-          <p className="text-destructive">{error}</p>
-        </div>
-      ) : !hasOffline && !hasRealtime ? (
-        <div className="flex items-center justify-center h-[400px] border border-dashed rounded-lg">
-          <p className="text-muted-foreground">No configuration found for this table</p>
-        </div>
-      ) : (
-        <Tabs defaultValue={defaultTab} className="w-full">
-          <TabsList className="mb-4">
-            {hasRealtime && (
-              <TabsTrigger value="realtime">Realtime Config</TabsTrigger>
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        {/* Table Config Section */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Table2 className="h-5 w-5" />
+                Configuration
+              </CardTitle>
+              <CardDescription>
+                Table configuration JSON
+              </CardDescription>
+            </div>
+            {!loading && !error && (hasOffline || hasRealtime) && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const currentTab = activeConfigTab || defaultTab
+                  const configToCopy = currentTab === "realtime" ? config?.realtime : config?.offline
+                  handleCopy(JSON.stringify(configToCopy, null, 2), "config")
+                }}
+              >
+                {copied === "config" ? (
+                  <>
+                    <Check className="h-4 w-4 mr-2" />
+                    Copied
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy JSON
+                  </>
+                )}
+              </Button>
             )}
-            {hasOffline && (
-              <TabsTrigger value="offline">Offline Config</TabsTrigger>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="space-y-4">
+                <Skeleton className="h-10 w-[200px]" />
+                <Skeleton className="h-[500px] w-full" />
+              </div>
+            ) : error ? (
+              <div className="flex items-center justify-center h-[400px] border border-dashed rounded-lg">
+                <p className="text-destructive">{error}</p>
+              </div>
+            ) : !hasOffline && !hasRealtime ? (
+              <div className="flex items-center justify-center h-[400px] border border-dashed rounded-lg">
+                <p className="text-muted-foreground">No configuration found for this table</p>
+              </div>
+            ) : (
+              <Tabs defaultValue={defaultTab} className="w-full" onValueChange={setActiveConfigTab}>
+                <TabsList className="mb-4">
+                  {hasRealtime && (
+                    <TabsTrigger value="realtime">Realtime</TabsTrigger>
+                  )}
+                  {hasOffline && (
+                    <TabsTrigger value="offline">Offline</TabsTrigger>
+                  )}
+                </TabsList>
+
+                {hasRealtime && (
+                  <TabsContent value="realtime" className="mt-0">
+                    <ScrollArea className="h-[500px] w-full rounded-md border">
+                      <pre className="p-4 text-sm font-mono">
+                        {JSON.stringify(config.realtime, null, 2)}
+                      </pre>
+                    </ScrollArea>
+                  </TabsContent>
+                )}
+
+                {hasOffline && (
+                  <TabsContent value="offline" className="mt-0">
+                    <ScrollArea className="h-[500px] w-full rounded-md border">
+                      <pre className="p-4 text-sm font-mono">
+                        {JSON.stringify(config.offline, null, 2)}
+                      </pre>
+                    </ScrollArea>
+                  </TabsContent>
+                )}
+              </Tabs>
             )}
-          </TabsList>
+          </CardContent>
+        </Card>
 
-          {hasRealtime && (
-            <TabsContent value="realtime">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle>Realtime Configuration</CardTitle>
-                    <CardDescription>
-                      Configuration for the realtime table
-                    </CardDescription>
+        {/* Schema Section */}
+        <div>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <FileJson className="h-5 w-5" />
+                  Schema
+                </CardTitle>
+                <CardDescription>
+                  {schema?.schemaName || tableName} ({schemaFields.length} columns)
+                </CardDescription>
+              </div>
+              {schema && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleCopy(JSON.stringify(schema, null, 2), "schema")}
+                >
+                  {copied === "schema" ? (
+                    <>
+                      <Check className="h-4 w-4 mr-2" />
+                      Copied
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copy JSON
+                    </>
+                  )}
+                </Button>
+              )}
+            </CardHeader>
+            <CardContent>
+              {schemaLoading ? (
+                <div className="space-y-3">
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <Skeleton key={i} className="h-10 w-full" />
+                  ))}
+                </div>
+              ) : schemaError ? (
+                <div className="flex items-center justify-center h-[200px] border border-dashed rounded-lg">
+                  <p className="text-destructive">{schemaError}</p>
+                </div>
+              ) : schemaFields.length === 0 ? (
+                <div className="flex items-center justify-center h-[200px] border border-dashed rounded-lg">
+                  <p className="text-muted-foreground">No schema found for this table</p>
+                </div>
+              ) : (
+                <ScrollArea className="h-[500px] w-full">
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Column</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead>Field Type</TableHead>
+                          <TableHead>Multi Value</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {schemaFields.map((field, index) => (
+                          <TableRow key={`${field.column}-${index}`}>
+                            <TableCell className="font-mono text-sm font-medium">
+                              {field.column}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline">{field.type}</Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge 
+                                variant={
+                                  field.fieldType === "DIMENSION" 
+                                    ? "default" 
+                                    : field.fieldType === "METRIC" 
+                                      ? "secondary" 
+                                      : "outline"
+                                }
+                              >
+                                {field.fieldType}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {field.multiValue ? (
+                                <Badge variant="default">Yes</Badge>
+                              ) : (
+                                <span className="text-muted-foreground">No</span>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleCopy(JSON.stringify(config.realtime, null, 2), "realtime")}
-                  >
-                    {copied === "realtime" ? (
-                      <>
-                        <Check className="h-4 w-4 mr-2" />
-                        Copied
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-4 w-4 mr-2" />
-                        Copy JSON
-                      </>
-                    )}
-                  </Button>
-                </CardHeader>
-                <CardContent>
-                  <ScrollArea className="h-[500px] w-full rounded-md border">
-                    <pre className="p-4 text-sm font-mono">
-                      {JSON.stringify(config.realtime, null, 2)}
-                    </pre>
-                  </ScrollArea>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          )}
-
-          {hasOffline && (
-            <TabsContent value="offline">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle>Offline Configuration</CardTitle>
-                    <CardDescription>
-                      Configuration for the offline table
-                    </CardDescription>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleCopy(JSON.stringify(config.offline, null, 2), "offline")}
-                  >
-                    {copied === "offline" ? (
-                      <>
-                        <Check className="h-4 w-4 mr-2" />
-                        Copied
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-4 w-4 mr-2" />
-                        Copy JSON
-                      </>
-                    )}
-                  </Button>
-                </CardHeader>
-                <CardContent>
-                  <ScrollArea className="h-[500px] w-full rounded-md border">
-                    <pre className="p-4 text-sm font-mono">
-                      {JSON.stringify(config.offline, null, 2)}
-                    </pre>
-                  </ScrollArea>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          )}
-        </Tabs>
-      )}
+                </ScrollArea>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
       {/* Segments Section */}
       <div className="mt-8">
