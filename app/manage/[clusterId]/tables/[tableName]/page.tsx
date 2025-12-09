@@ -54,14 +54,14 @@ interface SchemaField {
   multiValue: boolean
 }
 
-interface SegmentsData {
-  OFFLINE?: string[]
-  REALTIME?: string[]
+interface SegmentStatusEntry {
+  segmentName: string
+  segmentStatus: string
 }
 
 interface SegmentInfo {
   name: string
-  type: "OFFLINE" | "REALTIME"
+  status: string
 }
 
 interface TableSizeData {
@@ -121,9 +121,9 @@ export default function TableDetailPage() {
   const [segmentsLoading, setSegmentsLoading] = React.useState(true)
   const [segmentsError, setSegmentsError] = React.useState<string | null>(null)
   const [segmentSearch, setSegmentSearch] = React.useState("")
-  const [segmentTypeFilter, setSegmentTypeFilter] = React.useState<string>("all")
+  const [segmentStatusFilter, setSegmentStatusFilter] = React.useState<string>("all")
   const [segmentPage, setSegmentPage] = React.useState(1)
-  const segmentPageSize = 25
+  const segmentPageSize = 10
 
   React.useEffect(() => {
     async function fetchTableConfig() {
@@ -190,20 +190,17 @@ export default function TableDetailPage() {
       setSegmentsLoading(true)
       setSegmentsError(null)
       try {
-        const response = await fetch(`/api/clusters/${clusterId}/tables/${encodeURIComponent(tableName)}/segments`)
+        const response = await fetch(`/api/clusters/${clusterId}/tables/${encodeURIComponent(tableName)}/segmentsStatus`)
         if (!response.ok) {
-          throw new Error("Failed to fetch segments")
+          throw new Error("Failed to fetch segments status")
         }
-        const data: SegmentsData = await response.json()
+        const data: SegmentStatusEntry[] = await response.json()
         
-        // Flatten segments into a single array with type info
-        const allSegments: SegmentInfo[] = []
-        if (data.OFFLINE) {
-          data.OFFLINE.forEach(name => allSegments.push({ name, type: "OFFLINE" }))
-        }
-        if (data.REALTIME) {
-          data.REALTIME.forEach(name => allSegments.push({ name, type: "REALTIME" }))
-        }
+        // Map the response to our SegmentInfo format
+        const allSegments: SegmentInfo[] = data.map(entry => ({
+          name: entry.segmentName,
+          status: entry.segmentStatus
+        }))
         
         setSegments(allSegments)
       } catch (err) {
@@ -258,14 +255,20 @@ export default function TableDetailPage() {
     return fields
   }, [schema])
 
+  // Get unique statuses for filter dropdown
+  const uniqueStatuses = React.useMemo(() => {
+    const statuses = new Set(segments.map(s => s.status))
+    return Array.from(statuses).sort()
+  }, [segments])
+
   // Filter and paginate segments
   const filteredSegments = React.useMemo(() => {
     return segments.filter(segment => {
       const matchesSearch = segment.name.toLowerCase().includes(segmentSearch.toLowerCase())
-      const matchesType = segmentTypeFilter === "all" || segment.type === segmentTypeFilter
-      return matchesSearch && matchesType
+      const matchesStatus = segmentStatusFilter === "all" || segment.status === segmentStatusFilter
+      return matchesSearch && matchesStatus
     })
-  }, [segments, segmentSearch, segmentTypeFilter])
+  }, [segments, segmentSearch, segmentStatusFilter])
 
   const paginatedSegments = React.useMemo(() => {
     const startIndex = (segmentPage - 1) * segmentPageSize
@@ -277,7 +280,7 @@ export default function TableDetailPage() {
   // Reset page when filters change
   React.useEffect(() => {
     setSegmentPage(1)
-  }, [segmentSearch, segmentTypeFilter])
+  }, [segmentSearch, segmentStatusFilter])
 
   const handleCopy = async (content: string, type: string) => {
     try {
@@ -637,14 +640,15 @@ export default function TableDetailPage() {
                   className="pl-9"
                 />
               </div>
-              <Select value={segmentTypeFilter} onValueChange={setSegmentTypeFilter}>
+              <Select value={segmentStatusFilter} onValueChange={setSegmentStatusFilter}>
                 <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Filter by type" />
+                  <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="OFFLINE">OFFLINE</SelectItem>
-                  <SelectItem value="REALTIME">REALTIME</SelectItem>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  {uniqueStatuses.map(status => (
+                    <SelectItem key={status} value={status}>{status}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -660,7 +664,7 @@ export default function TableDetailPage() {
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-[80%]">Segment Name</TableHead>
-                        <TableHead>Type</TableHead>
+                        <TableHead>Status</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -668,15 +672,15 @@ export default function TableDetailPage() {
                         <TableRow key={`${segment.name}-${index}`}>
                           <TableCell className="font-mono text-sm">
                             <Link
-                              href={`/manage/${clusterId}/tables/${tableName}/segments/${encodeURIComponent(segment.name)}?type=${segment.type}`}
+                              href={`/manage/${clusterId}/tables/${tableName}/segments/${encodeURIComponent(segment.name)}`}
                               className="hover:underline text-primary"
                             >
                               {segment.name}
                             </Link>
                           </TableCell>
                           <TableCell>
-                            <Badge variant={segment.type === "REALTIME" ? "default" : "secondary"}>
-                              {segment.type}
+                            <Badge variant={segment.status === "GOOD" || segment.status === "ONLINE" ? "default" : segment.status === "OFFLINE" ? "secondary" : "destructive"}>
+                              {segment.status}
                             </Badge>
                           </TableCell>
                         </TableRow>
