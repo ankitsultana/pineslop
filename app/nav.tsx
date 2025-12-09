@@ -88,7 +88,7 @@ export function NavigationMenuDemo() {
                 variant="outline"
                 role="combobox"
                 aria-expanded={open}
-                className="w-[200px] justify-between font-mono"
+                className="w-[400px] justify-between font-mono"
               >
                 <Server className="mr-2 h-4 w-4 shrink-0 opacity-50" />
                 <span className="truncate">
@@ -97,7 +97,7 @@ export function NavigationMenuDemo() {
                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-[200px] p-0">
+            <PopoverContent className="w-[400px] p-0">
               <Command>
                 <CommandInput placeholder="Search clusters..." />
                 <CommandList>
