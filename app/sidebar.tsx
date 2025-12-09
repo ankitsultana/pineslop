@@ -8,6 +8,7 @@ import { Inter_Tight } from "next/font/google";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { usePathname } from "next/navigation";
 
 export const interTight = Inter_Tight({
   weight: '500',
@@ -110,6 +111,8 @@ export function createSidebarFooter() {
 
 
 export default function MySidebar() {
+  const pathname = usePathname();
+  
   return (
     <Sidebar id="my-sidebar" collapsible="icon">
       { createSidebarHeader() }
@@ -117,16 +120,19 @@ export default function MySidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <a href={item.url}>
-                      <item.icon className={cn(item.style, "p-1 rounded size-5!")} />
-                      <span>{item.title}</span>
-                    </a>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {items.map((item) => {
+                const isActive = pathname === item.url || pathname.startsWith(item.url + '/');
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild className={cn(isActive && "bg-sidebar-accent text-sidebar-accent-foreground")}>
+                      <a href={item.url}>
+                        <item.icon className={cn(item.style, "p-1 rounded size-5!")} />
+                        <span>{item.title}</span>
+                      </a>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
