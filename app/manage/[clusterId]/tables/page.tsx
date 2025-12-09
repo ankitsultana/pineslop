@@ -1,8 +1,9 @@
 "use client"
 
 import * as React from "react"
-import { useParams, useRouter, useSearchParams } from "next/navigation"
-import { Server, Table2, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, Search } from "lucide-react"
+import Link from "next/link"
+import { useParams, useSearchParams } from "next/navigation"
+import { Table2, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, Search } from "lucide-react"
 import {
   Table,
   TableBody,
@@ -28,20 +29,21 @@ type SortOrder = "asc" | "desc"
 
 interface TableInfo {
   name: string
+  fullName: string
   type: "REALTIME" | "OFFLINE" | "DIMENSION" | "UNKNOWN"
 }
 
 function parseTableName(fullName: string): TableInfo {
   if (fullName.endsWith("_REALTIME")) {
-    return { name: fullName.replace(/_REALTIME$/, ""), type: "REALTIME" }
+    return { name: fullName.replace(/_REALTIME$/, ""), fullName, type: "REALTIME" }
   }
   if (fullName.endsWith("_OFFLINE")) {
-    return { name: fullName.replace(/_OFFLINE$/, ""), type: "OFFLINE" }
+    return { name: fullName.replace(/_OFFLINE$/, ""), fullName, type: "OFFLINE" }
   }
   if (fullName.endsWith("_DIMENSION")) {
-    return { name: fullName.replace(/_DIMENSION$/, ""), type: "DIMENSION" }
+    return { name: fullName.replace(/_DIMENSION$/, ""), fullName, type: "DIMENSION" }
   }
-  return { name: fullName, type: "UNKNOWN" }
+  return { name: fullName, fullName, type: "UNKNOWN" }
 }
 
 function getTypeBadgeVariant(type: TableInfo["type"]) {
@@ -61,7 +63,6 @@ const PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
 
 export default function TablesPage() {
   const params = useParams()
-  const router = useRouter()
   const searchParams = useSearchParams()
   const clusterId = params.clusterId as string
 
@@ -260,8 +261,15 @@ export default function TablesPage() {
               </TableHeader>
               <TableBody>
                 {paginatedTables.map((table, index) => (
-                  <TableRow key={`${table.name}-${table.type}-${index}`}>
-                    <TableCell className="font-mono">{table.name}</TableCell>
+                  <TableRow key={`${table.fullName}-${index}`}>
+                    <TableCell>
+                      <Link
+                        href={`/manage/${clusterId}/tables/${table.name}`}
+                        className="font-mono hover:underline text-primary"
+                      >
+                        {table.name}
+                      </Link>
+                    </TableCell>
                     <TableCell>
                       <Badge variant={getTypeBadgeVariant(table.type)}>
                         {table.type}
@@ -324,4 +332,3 @@ export default function TablesPage() {
     </div>
   )
 }
-
