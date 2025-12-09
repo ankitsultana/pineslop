@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
-import { Table2, Copy, Check, Search, ChevronLeft, ChevronRight, Layers, FileJson } from "lucide-react"
+import { Table2, Copy, Check, Search, ChevronLeft, ChevronRight, Layers, FileJson, Clock, Server, Radio, HardDrive } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -64,6 +64,36 @@ interface SegmentInfo {
   type: "OFFLINE" | "REALTIME"
 }
 
+interface TableSizeData {
+  tableName: string
+  reportedSizeInBytes: number
+  estimatedSizeInBytes: number
+}
+
+// Helper to extract nested config values
+function getConfigValue(config: Record<string, unknown> | undefined, path: string): unknown {
+  if (!config) return undefined
+  const parts = path.split(".")
+  let current: unknown = config
+  for (const part of parts) {
+    if (current && typeof current === "object" && part in current) {
+      current = (current as Record<string, unknown>)[part]
+    } else {
+      return undefined
+    }
+  }
+  return current
+}
+
+// Helper to format bytes
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return "0 B"
+  const k = 1024
+  const sizes = ["B", "KB", "MB", "GB", "TB"]
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
+}
+
 export default function TableDetailPage() {
   const params = useParams()
   const clusterId = params.clusterId as string
@@ -81,6 +111,10 @@ export default function TableDetailPage() {
 
   // Config tab state
   const [activeConfigTab, setActiveConfigTab] = React.useState<string | null>(null)
+
+  // Table size state
+  const [tableSize, setTableSize] = React.useState<TableSizeData | null>(null)
+  const [tableSizeLoading, setTableSizeLoading] = React.useState(true)
 
   // Segments state
   const [segments, setSegments] = React.useState<SegmentInfo[]>([])
@@ -131,6 +165,24 @@ export default function TableDetailPage() {
       }
     }
     fetchSchema()
+  }, [clusterId, tableName])
+
+  React.useEffect(() => {
+    async function fetchTableSize() {
+      setTableSizeLoading(true)
+      try {
+        const response = await fetch(`/api/clusters/${clusterId}/tables/${encodeURIComponent(tableName)}/size`)
+        if (response.ok) {
+          const data: TableSizeData = await response.json()
+          setTableSize(data)
+        }
+      } catch (err) {
+        console.error("Error fetching table size:", err)
+      } finally {
+        setTableSizeLoading(false)
+      }
+    }
+    fetchTableSize()
   }, [clusterId, tableName])
 
   React.useEffect(() => {
@@ -241,6 +293,58 @@ export default function TableDetailPage() {
   const hasRealtime = config?.realtime && Object.keys(config.realtime).length > 0
   const defaultTab = hasRealtime ? "realtime" : hasOffline ? "offline" : "realtime"
 
+  // Extract stats from config
+  const stats = React.useMemo(() => {
+    const realtimeConfig = config?.realtime as Record<string, unknown> | undefined
+    const offlineConfig = config?.offline as Record<string, unknown> | undefined
+
+    // Retention
+    const realtimeRetentionValue = getConfigValue(realtimeConfig, "segmentsConfig.retentionTimeValue")
+    const realtimeRetentionUnit = getConfigValue(realtimeConfig, "segmentsConfig.retentionTimeUnit")
+    const offlineRetentionValue = getConfigValue(offlineConfig, "segmentsConfig.retentionTimeValue")
+    const offlineRetentionUnit = getConfigValue(offlineConfig, "segmentsConfig.retentionTimeUnit")
+
+    const formatRetention = (value: unknown, unit: unknown) => {
+      if (!value || !unit) return null
+      const unitStr = String(unit).toLowerCase().replace(/s$/, "")
+      return `${value} ${unitStr}${Number(value) !== 1 ? "s" : ""}`
+    }
+
+    const realtimeRetention = formatRetention(realtimeRetentionValue, realtimeRetentionUnit)
+    const offlineRetention = formatRetention(offlineRetentionValue, offlineRetentionUnit)
+
+    let retention = ""
+    if (realtimeRetention && offlineRetention) {
+      retention = `${realtimeRetention} (RT) / ${offlineRetention} (OFF)`
+    } else if (realtimeRetention) {
+      retention = `${realtimeRetention} (Realtime)`
+    } else if (offlineRetention) {
+      retention = `${offlineRetention} (Offline)`
+    }
+
+    // Server Tenant
+    const realtimeServerTenant = getConfigValue(realtimeConfig, "tenants.server")
+    const offlineServerTenant = getConfigValue(offlineConfig, "tenants.server")
+    let serverTenant = ""
+    if (realtimeServerTenant && offlineServerTenant && realtimeServerTenant !== offlineServerTenant) {
+      serverTenant = `${realtimeServerTenant} (RT) / ${offlineServerTenant} (OFF)`
+    } else {
+      serverTenant = String(realtimeServerTenant || offlineServerTenant || "—")
+    }
+
+    // Broker Tenant
+    const realtimeBrokerTenant = getConfigValue(realtimeConfig, "tenants.broker")
+    const offlineBrokerTenant = getConfigValue(offlineConfig, "tenants.broker")
+    let brokerTenant = ""
+    if (realtimeBrokerTenant && offlineBrokerTenant && realtimeBrokerTenant !== offlineBrokerTenant) {
+      brokerTenant = `${realtimeBrokerTenant} (RT) / ${offlineBrokerTenant} (OFF)`
+    } else {
+      brokerTenant = String(realtimeBrokerTenant || offlineBrokerTenant || "—")
+    }
+
+    return { retention, serverTenant, brokerTenant }
+  }, [config])
+
   return (
     <div className="p-6">
       <div className="mb-6">
@@ -258,7 +362,56 @@ export default function TableDetailPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      {/* Quick Stats Row */}
+      <div className="flex items-center gap-6 mb-6 text-sm">
+        <div className="flex items-center gap-2">
+          <Clock className="h-4 w-4 text-muted-foreground" />
+          <span className="text-muted-foreground">Retention:</span>
+          {loading ? (
+            <Skeleton className="h-4 w-20" />
+          ) : (
+            <span className="font-medium">{stats.retention || "—"}</span>
+          )}
+        </div>
+
+        <div className="h-4 w-px bg-border" />
+
+        <div className="flex items-center gap-2">
+          <Server className="h-4 w-4 text-muted-foreground" />
+          <span className="text-muted-foreground">Server:</span>
+          {loading ? (
+            <Skeleton className="h-4 w-24" />
+          ) : (
+            <span className="font-medium">{stats.serverTenant}</span>
+          )}
+        </div>
+
+        <div className="h-4 w-px bg-border" />
+
+        <div className="flex items-center gap-2">
+          <Radio className="h-4 w-4 text-muted-foreground" />
+          <span className="text-muted-foreground">Broker:</span>
+          {loading ? (
+            <Skeleton className="h-4 w-24" />
+          ) : (
+            <span className="font-medium">{stats.brokerTenant}</span>
+          )}
+        </div>
+
+        <div className="h-4 w-px bg-border" />
+
+        <div className="flex items-center gap-2">
+          <HardDrive className="h-4 w-4 text-muted-foreground" />
+          <span className="text-muted-foreground">Size:</span>
+          {tableSizeLoading ? (
+            <Skeleton className="h-4 w-16" />
+          ) : (
+            <span className="font-medium">{tableSize ? formatBytes(tableSize.reportedSizeInBytes) : "—"}</span>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Table Config Section */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
