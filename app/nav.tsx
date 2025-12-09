@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { Moon, Sun, Github, BookOpen, Sheet, ChevronsUpDown, Check } from "lucide-react"
 import { useTheme } from "next-themes"
 
@@ -24,6 +25,9 @@ import {
   CommandList,
 } from "@/components/ui/command"
 import { cn } from "@/lib/utils"
+
+// Pages where the cluster selector should be hidden
+const HIDE_CLUSTER_SELECTOR_PATHS = ["/comments", "/activity"]
 
 function ClusterSelector() {
   const [open, setOpen] = React.useState(false);
@@ -103,6 +107,9 @@ function ClusterSelector() {
 export function NavigationMenuDemo() {
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = React.useState(false)
+  const pathname = usePathname()
+  
+  const showClusterSelector = !HIDE_CLUSTER_SELECTOR_PATHS.includes(pathname)
 
   React.useEffect(() => {
     setMounted(true)
@@ -131,7 +138,7 @@ export function NavigationMenuDemo() {
         </BreadcrumbList>
       </Breadcrumb>
       <div className="flex items-center gap-2 ml-auto">
-        <ClusterSelector />
+        {showClusterSelector && <ClusterSelector />}
         <Button variant="ghost" size="icon" asChild>
           <Link href="https://docs.pinot.apache.org/" target="_blank" aria-label="Documentation">
             <BookOpen className="size-4" />
