@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
 import { useParams, useSearchParams } from "next/navigation"
 import { Server, Network, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, Search } from "lucide-react"
 import {
@@ -34,9 +35,10 @@ interface TenantListProps {
   error: string | null
   searchQuery: string
   type: "SERVER" | "BROKER"
+  clusterId: string
 }
 
-function TenantList({ tenants, loading, error, searchQuery, type }: TenantListProps) {
+function TenantList({ tenants, loading, error, searchQuery, type, clusterId }: TenantListProps) {
   const [currentPage, setCurrentPage] = React.useState(1)
   const [pageSize, setPageSize] = React.useState(25)
   const [sortOrder, setSortOrder] = React.useState<SortOrder>("asc")
@@ -133,9 +135,14 @@ function TenantList({ tenants, loading, error, searchQuery, type }: TenantListPr
           <TableBody>
             {paginatedTenants.map((tenant) => (
               <TableRow key={tenant}>
-                <TableCell className="font-mono flex items-center gap-2">
-                  <Icon className="h-4 w-4 text-muted-foreground" />
-                  {tenant}
+                <TableCell>
+                  <Link 
+                    href={`/manage/${clusterId}/tenants/${tenant}?type=${type}`}
+                    className="font-mono flex items-center gap-2 hover:underline text-primary"
+                  >
+                    <Icon className="h-4 w-4 text-muted-foreground" />
+                    {tenant}
+                  </Link>
                 </TableCell>
                 <TableCell>
                   <Badge variant={type === "SERVER" ? "default" : "secondary"}>
@@ -286,6 +293,7 @@ export default function TenantsPage() {
             error={error}
             searchQuery={searchQuery}
             type="SERVER"
+            clusterId={clusterId}
           />
         </TabsContent>
         <TabsContent value="BROKER">
@@ -295,10 +303,10 @@ export default function TenantsPage() {
             error={error}
             searchQuery={searchQuery}
             type="BROKER"
+            clusterId={clusterId}
           />
         </TabsContent>
       </Tabs>
     </div>
   )
 }
-
