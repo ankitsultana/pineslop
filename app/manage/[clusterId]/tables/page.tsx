@@ -2,8 +2,8 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { useParams, useSearchParams } from "next/navigation"
-import { Table2, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, Search } from "lucide-react"
+import { useParams } from "next/navigation"
+import { Table2, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, Search, CheckCircle2, XCircle, Loader2 } from "lucide-react"
 import {
   Table,
   TableBody,
@@ -24,13 +24,29 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 
-type SortField = "name" | "type"
+type SortField = "name" | "reportedSize" | "estimatedSize" | "status"
 type SortOrder = "asc" | "desc"
 
 interface TableInfo {
   name: string
   fullName: string
   type: "REALTIME" | "OFFLINE" | "DIMENSION" | "UNKNOWN"
+}
+
+interface TableSizeInfo {
+  reportedSizeInBytes: number
+  estimatedSizeInBytes: number
+}
+
+interface TableStateInfo {
+  status: "GOOD" | "BAD" | "UNKNOWN"
+}
+
+interface TableMetadata {
+  size?: TableSizeInfo
+  state?: TableStateInfo
+  loading: boolean
+  error?: string
 }
 
 function parseTableName(fullName: string): TableInfo {
@@ -46,29 +62,24 @@ function parseTableName(fullName: string): TableInfo {
   return { name: fullName, fullName, type: "UNKNOWN" }
 }
 
-function getTypeBadgeVariant(type: TableInfo["type"]) {
-  switch (type) {
-    case "REALTIME":
-      return "default"
-    case "OFFLINE":
-      return "secondary"
-    case "DIMENSION":
-      return "outline"
-    default:
-      return "outline"
-  }
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return "0 B"
+  const k = 1024
+  const sizes = ["B", "KB", "MB", "GB", "TB", "PB"]
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
 }
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
 
 export default function TablesPage() {
   const params = useParams()
-  const searchParams = useSearchParams()
   const clusterId = params.clusterId as string
 
   const [tables, setTables] = React.useState<string[]>([])
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState<string | null>(null)
+  const [tableMetadata, setTableMetadata] = React.useState<Record<string, TableMetadata>>({})
   
   // Pagination
   const [currentPage, setCurrentPage] = React.useState(1)
@@ -103,6 +114,53 @@ export default function TablesPage() {
     fetchTables()
   }, [clusterId])
 
+  // Fetch metadata for a single table
+  const fetchTableMetadata = React.useCallback(async (tableName: string) => {
+    setTableMetadata(prev => ({
+      ...prev,
+      [tableName]: { loading: true }
+    }))
+
+    try {
+      const [sizeResponse, stateResponse] = await Promise.all([
+        fetch(`/api/clusters/${clusterId}/tables/${tableName}/size`),
+        fetch(`/api/clusters/${clusterId}/tables/${tableName}/state`)
+      ])
+
+      let size: TableSizeInfo | undefined
+      let state: TableStateInfo | undefined
+      let errorMsg: string | undefined
+
+      if (sizeResponse.ok) {
+        const sizeData = await sizeResponse.json()
+        size = {
+          reportedSizeInBytes: sizeData.reportedSizeInBytes,
+          estimatedSizeInBytes: sizeData.estimatedSizeInBytes
+        }
+      } else {
+        errorMsg = "Failed to fetch size"
+      }
+
+      if (stateResponse.ok) {
+        const stateData = await stateResponse.json()
+        state = { status: stateData.status }
+      } else {
+        errorMsg = errorMsg ? `${errorMsg}, state` : "Failed to fetch state"
+      }
+
+      setTableMetadata(prev => ({
+        ...prev,
+        [tableName]: { size, state, loading: false, error: errorMsg }
+      }))
+    } catch (err) {
+      console.error(`Error fetching metadata for ${tableName}:`, err)
+      setTableMetadata(prev => ({
+        ...prev,
+        [tableName]: { loading: false, error: "Failed to fetch metadata" }
+      }))
+    }
+  }, [clusterId])
+
   // Parse and process tables
   const parsedTables = React.useMemo(() => {
     return tables.map(parseTableName)
@@ -123,12 +181,22 @@ export default function TablesPage() {
       let comparison = 0
       if (sortField === "name") {
         comparison = a.name.localeCompare(b.name)
-      } else if (sortField === "type") {
-        comparison = a.type.localeCompare(b.type)
+      } else if (sortField === "reportedSize") {
+        const aSize = tableMetadata[a.fullName]?.size?.reportedSizeInBytes ?? 0
+        const bSize = tableMetadata[b.fullName]?.size?.reportedSizeInBytes ?? 0
+        comparison = aSize - bSize
+      } else if (sortField === "estimatedSize") {
+        const aSize = tableMetadata[a.fullName]?.size?.estimatedSizeInBytes ?? 0
+        const bSize = tableMetadata[b.fullName]?.size?.estimatedSizeInBytes ?? 0
+        comparison = aSize - bSize
+      } else if (sortField === "status") {
+        const aStatus = tableMetadata[a.fullName]?.state?.status ?? "UNKNOWN"
+        const bStatus = tableMetadata[b.fullName]?.state?.status ?? "UNKNOWN"
+        comparison = aStatus.localeCompare(bStatus)
       }
       return sortOrder === "asc" ? comparison : -comparison
     })
-  }, [filteredTables, sortField, sortOrder])
+  }, [filteredTables, sortField, sortOrder, tableMetadata])
 
   // Paginate tables
   const paginatedTables = React.useMemo(() => {
@@ -142,6 +210,15 @@ export default function TablesPage() {
   React.useEffect(() => {
     setCurrentPage(1)
   }, [searchQuery, typeFilter, pageSize])
+
+  // Fetch metadata for visible tables
+  React.useEffect(() => {
+    paginatedTables.forEach((table) => {
+      if (!tableMetadata[table.fullName] && !loading) {
+        fetchTableMetadata(table.fullName)
+      }
+    })
+  }, [paginatedTables, tableMetadata, loading, fetchTableMetadata])
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -237,7 +314,7 @@ export default function TablesPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[60%]">
+                  <TableHead className="w-[40%]">
                     <Button
                       variant="ghost"
                       onClick={() => handleSort("name")}
@@ -250,33 +327,98 @@ export default function TablesPage() {
                   <TableHead>
                     <Button
                       variant="ghost"
-                      onClick={() => handleSort("type")}
+                      onClick={() => handleSort("reportedSize")}
                       className="h-8 p-0 font-medium hover:bg-transparent"
                     >
-                      Type
-                      <SortIcon field="type" />
+                      Reported Size
+                      <SortIcon field="reportedSize" />
+                    </Button>
+                  </TableHead>
+                  <TableHead>
+                    <Button
+                      variant="ghost"
+                      onClick={() => handleSort("estimatedSize")}
+                      className="h-8 p-0 font-medium hover:bg-transparent"
+                    >
+                      Estimated Size
+                      <SortIcon field="estimatedSize" />
+                    </Button>
+                  </TableHead>
+                  <TableHead>
+                    <Button
+                      variant="ghost"
+                      onClick={() => handleSort("status")}
+                      className="h-8 p-0 font-medium hover:bg-transparent"
+                    >
+                      Status
+                      <SortIcon field="status" />
                     </Button>
                   </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginatedTables.map((table, index) => (
-                  <TableRow key={`${table.fullName}-${index}`}>
-                    <TableCell>
-                      <Link
-                        href={`/manage/${clusterId}/tables/${table.name}`}
-                        className="font-mono hover:underline text-primary"
-                      >
-                        {table.name}
-                      </Link>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={getTypeBadgeVariant(table.type)}>
-                        {table.type}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {paginatedTables.map((table, index) => {
+                  const metadata = tableMetadata[table.fullName]
+                  return (
+                    <TableRow key={`${table.fullName}-${index}`}>
+                      <TableCell>
+                        <Link
+                          href={`/manage/${clusterId}/tables/${table.name}`}
+                          className="font-mono hover:underline text-primary"
+                        >
+                          {table.name}
+                        </Link>
+                      </TableCell>
+                      <TableCell>
+                        {metadata?.loading ? (
+                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                        ) : metadata?.size ? (
+                          <span className="font-mono text-sm">
+                            {formatBytes(metadata.size.reportedSizeInBytes)}
+                          </span>
+                        ) : metadata?.error ? (
+                          <span className="text-muted-foreground text-sm">—</span>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {metadata?.loading ? (
+                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                        ) : metadata?.size ? (
+                          <span className="font-mono text-sm">
+                            {formatBytes(metadata.size.estimatedSizeInBytes)}
+                          </span>
+                        ) : metadata?.error ? (
+                          <span className="text-muted-foreground text-sm">—</span>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {metadata?.loading ? (
+                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                        ) : metadata?.state ? (
+                          metadata.state.status === "GOOD" ? (
+                            <Badge variant="default" className="bg-green-600 hover:bg-green-600">
+                              <CheckCircle2 className="h-3 w-3 mr-1" />
+                              GOOD
+                            </Badge>
+                          ) : (
+                            <Badge variant="destructive">
+                              <XCircle className="h-3 w-3 mr-1" />
+                              BAD
+                            </Badge>
+                          )
+                        ) : metadata?.error ? (
+                          <span className="text-muted-foreground text-sm">—</span>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">—</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
               </TableBody>
             </Table>
           </div>
