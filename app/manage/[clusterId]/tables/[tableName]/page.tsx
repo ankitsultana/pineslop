@@ -98,6 +98,22 @@ function formatBytes(bytes: number): string {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
 }
 
+// Helper to determine segment type from segment name
+// REALTIME segments have pattern: tableName__partitionId__sequenceId__creationTime (e.g., table__0__1__20231209T1234Z)
+// OFFLINE segments typically don't have the partition/sequence/time pattern
+function getSegmentType(segmentName: string, hasRealtime: boolean, hasOffline: boolean): "REALTIME" | "OFFLINE" {
+  // Check if segment name matches REALTIME pattern (has __number__number__timestamp)
+  const realtimePattern = /__\d+__\d+__\d{8}T\d{4}Z$/
+  if (realtimePattern.test(segmentName)) {
+    return "REALTIME"
+  }
+  // If table only has one type, use that
+  if (hasRealtime && !hasOffline) return "REALTIME"
+  if (hasOffline && !hasRealtime) return "OFFLINE"
+  // Default to OFFLINE for hybrid tables with non-realtime segment names
+  return "OFFLINE"
+}
+
 export default function TableDetailPage() {
   const params = useParams()
   const clusterId = params.clusterId as string
@@ -729,23 +745,26 @@ export default function TableDetailPage() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {paginatedSegments.map((segment, index) => (
-                            <TableRow key={`${segment.name}-${index}`}>
-                              <TableCell className="font-mono text-sm">
-                                <Link
-                                  href={`/manage/${clusterId}/tables/${tableName}/segments/${encodeURIComponent(segment.name)}`}
-                                  className="hover:underline text-primary"
-                                >
-                                  {segment.name}
-                                </Link>
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant={segment.status === "GOOD" || segment.status === "ONLINE" ? "default" : segment.status === "OFFLINE" ? "secondary" : "destructive"}>
-                                  {segment.status}
-                                </Badge>
-                              </TableCell>
-                            </TableRow>
-                          ))}
+                          {paginatedSegments.map((segment, index) => {
+                            const segmentType = getSegmentType(segment.name, !!hasRealtime, !!hasOffline)
+                            return (
+                              <TableRow key={`${segment.name}-${index}`}>
+                                <TableCell className="font-mono text-sm">
+                                  <Link
+                                    href={`/manage/${clusterId}/tables/${tableName}/segments/${encodeURIComponent(segment.name)}?type=${segmentType}`}
+                                    className="hover:underline text-primary"
+                                  >
+                                    {segment.name}
+                                  </Link>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant={segment.status === "GOOD" || segment.status === "ONLINE" ? "default" : segment.status === "OFFLINE" ? "secondary" : "destructive"}>
+                                    {segment.status}
+                                  </Badge>
+                                </TableCell>
+                              </TableRow>
+                            )
+                          })}
                         </TableBody>
                       </Table>
                     </div>
