@@ -131,5 +131,57 @@
   }
   body {
     @apply bg-background text-foreground;
-  }  
+  }
+
+  /* Ensure Ace editor isn't affected by global outline/border styles
+     which can visually offset the cursor from the text. */
+  .ace_editor,
+  .ace_editor * {
+    outline: none;
+    border-color: transparent;
+  }
+
+  /* Style Ace Editor with padding and rounded corners */
+  .ace-editor-styled.ace_editor {
+    border-radius: 0.5rem;
+    overflow: hidden;
+  }
+
+  .ace-editor-styled.ace_editor .ace_gutter {
+    border-top-left-radius: 0.5rem;
+    border-bottom-left-radius: 0.5rem;
+  }
+
+  .ace-editor-styled.ace_editor .ace_scroller {
+    border-top-right-radius: 0.5rem;
+    border-bottom-right-radius: 0.5rem;
+  }
+
+  /* Add padding to the content area */
+  .ace-editor-styled.ace_editor .ace_content {
+    padding-top: 0.75rem;
+    box-sizing: border-box;
+  }
+
+  /* Adjust gutter to align with padded content vertically */
+  .ace-editor-styled.ace_editor .ace_gutter {
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+
+  /* Ensure editor container fills available height */
+  #main-query-editor {
+    display: flex;
+    flex-direction: column;
+  }
+
+  #main-query-editor > .ace_editor {
+    flex: 1;
+    min-height: 0;
+  }
+
+  button:not([disabled]),
+  [role="button"]:not([disabled]) {
+    cursor: pointer;
+  }
 }
