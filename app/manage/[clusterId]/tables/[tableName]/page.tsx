@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
 import { useParams } from "next/navigation"
 import { Table2, Copy, Check, Search, ChevronLeft, ChevronRight, Layers } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -342,7 +343,12 @@ export default function TableDetailPage() {
                       {paginatedSegments.map((segment, index) => (
                         <TableRow key={`${segment.name}-${index}`}>
                           <TableCell className="font-mono text-sm">
-                            {segment.name}
+                            <Link
+                              href={`/manage/${clusterId}/tables/${tableName}/segments/${encodeURIComponent(segment.name)}?type=${segment.type}`}
+                              className="hover:underline text-primary"
+                            >
+                              {segment.name}
+                            </Link>
                           </TableCell>
                           <TableCell>
                             <Badge variant={segment.type === "REALTIME" ? "default" : "secondary"}>
