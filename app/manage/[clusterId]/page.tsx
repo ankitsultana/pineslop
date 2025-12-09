@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
-import { Server, Table2, ChevronRight, Loader2, Users, Network } from "lucide-react"
+import { Server, Table2, ChevronRight, Loader2, Users } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
 interface ClusterStats {
@@ -65,6 +65,8 @@ export default function ManageClusterPage() {
     fetchStats()
   }, [clusterId])
 
+  const totalTenants = (stats.serverTenantCount ?? 0) + (stats.brokerTenantCount ?? 0)
+
   return (
     <div className="p-6">
       <div className="mb-6">
@@ -110,13 +112,13 @@ export default function ManageClusterPage() {
           </Card>
         </Link>
 
-        {/* Server Tenants Card */}
-        <Link href={`/manage/${clusterId}/tenants?type=SERVER`}>
+        {/* Tenants Card */}
+        <Link href={`/manage/${clusterId}/tenants`}>
           <Card className="cursor-pointer transition-colors hover:bg-accent hover:text-accent-foreground">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <Server className="h-4 w-4 text-muted-foreground" />
-                Server Tenants
+                <Users className="h-4 w-4 text-muted-foreground" />
+                Tenants
               </CardTitle>
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
@@ -130,39 +132,9 @@ export default function ManageClusterPage() {
                 <CardDescription className="text-destructive">{stats.error}</CardDescription>
               ) : (
                 <>
-                  <div className="text-2xl font-bold">{stats.serverTenantCount}</div>
+                  <div className="text-2xl font-bold">{totalTenants}</div>
                   <CardDescription>
-                    server {stats.serverTenantCount === 1 ? 'tenant' : 'tenants'}
-                  </CardDescription>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </Link>
-
-        {/* Broker Tenants Card */}
-        <Link href={`/manage/${clusterId}/tenants?type=BROKER`}>
-          <Card className="cursor-pointer transition-colors hover:bg-accent hover:text-accent-foreground">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <Network className="h-4 w-4 text-muted-foreground" />
-                Broker Tenants
-              </CardTitle>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {stats.loading ? (
-                <div className="flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span className="text-sm text-muted-foreground">Loading...</span>
-                </div>
-              ) : stats.error ? (
-                <CardDescription className="text-destructive">{stats.error}</CardDescription>
-              ) : (
-                <>
-                  <div className="text-2xl font-bold">{stats.brokerTenantCount}</div>
-                  <CardDescription>
-                    broker {stats.brokerTenantCount === 1 ? 'tenant' : 'tenants'}
+                    {stats.serverTenantCount} server, {stats.brokerTenantCount} broker
                   </CardDescription>
                 </>
               )}
