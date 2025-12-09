@@ -26,6 +26,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+interface ServerSegmentCount {
+  server: string
+  count: number
+}
 
 interface TableConfig {
   offline?: Record<string, unknown>
@@ -125,6 +129,12 @@ export default function TableDetailPage() {
   const [segmentPage, setSegmentPage] = React.useState(1)
   const segmentPageSize = 10
 
+  // Per-server segment counts state
+  const [serverSegmentCounts, setServerSegmentCounts] = React.useState<ServerSegmentCount[]>([])
+  const [serverSegmentsLoading, setServerSegmentsLoading] = React.useState(true)
+  const [serverPage, setServerPage] = React.useState(1)
+  const serverPageSize = 10
+
   React.useEffect(() => {
     async function fetchTableConfig() {
       setLoading(true)
@@ -213,6 +223,46 @@ export default function TableDetailPage() {
     fetchSegments()
   }, [clusterId, tableName])
 
+  React.useEffect(() => {
+    async function fetchServerSegments() {
+      setServerSegmentsLoading(true)
+      try {
+        const response = await fetch(`/api/clusters/${clusterId}/tables/${encodeURIComponent(tableName)}/servers?verbose=false`)
+        if (!response.ok) {
+          throw new Error("Failed to fetch server segments")
+        }
+        const data = await response.json()
+        
+        // The API returns an array of objects with tableName and serverToSegmentsCountMap
+        // Example: [{"tableName":"airlineStats_REALTIME","serverToSegmentsCountMap":{"Server_172.17.0.2_7050":15}}]
+        const serverCountsMap: Record<string, number> = {}
+        
+        if (Array.isArray(data)) {
+          data.forEach((item: { tableName?: string; serverToSegmentsCountMap?: Record<string, number> }) => {
+            if (item.serverToSegmentsCountMap) {
+              Object.entries(item.serverToSegmentsCountMap).forEach(([server, count]) => {
+                // Aggregate counts across table types (REALTIME/OFFLINE)
+                serverCountsMap[server] = (serverCountsMap[server] || 0) + count
+              })
+            }
+          })
+        }
+        
+        // Convert to array and sort by count descending
+        const serverCounts: ServerSegmentCount[] = Object.entries(serverCountsMap)
+          .map(([server, count]) => ({ server, count }))
+          .sort((a, b) => b.count - a.count)
+        
+        setServerSegmentCounts(serverCounts)
+      } catch (err) {
+        console.error("Error fetching server segments:", err)
+      } finally {
+        setServerSegmentsLoading(false)
+      }
+    }
+    fetchServerSegments()
+  }, [clusterId, tableName])
+
   // Flatten schema fields into a single array for display
   const schemaFields = React.useMemo<SchemaField[]>(() => {
     if (!schema) return []
@@ -276,6 +326,14 @@ export default function TableDetailPage() {
   }, [filteredSegments, segmentPage, segmentPageSize])
 
   const totalSegmentPages = Math.ceil(filteredSegments.length / segmentPageSize)
+
+  // Paginate server segment counts
+  const paginatedServerSegmentCounts = React.useMemo(() => {
+    const startIndex = (serverPage - 1) * serverPageSize
+    return serverSegmentCounts.slice(startIndex, startIndex + serverPageSize)
+  }, [serverSegmentCounts, serverPage, serverPageSize])
+
+  const totalServerPages = Math.ceil(serverSegmentCounts.length / serverPageSize)
 
   // Reset page when filters change
   React.useEffect(() => {
@@ -613,49 +671,137 @@ export default function TableDetailPage() {
           )}
         </div>
 
-        {segmentsLoading ? (
-          <div className="space-y-3">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} className="h-12 w-full" />
-            ))}
-          </div>
-        ) : segmentsError ? (
-          <div className="flex items-center justify-center h-[200px] border border-dashed rounded-lg">
-            <p className="text-destructive">{segmentsError}</p>
-          </div>
-        ) : segments.length === 0 ? (
-          <div className="flex items-center justify-center h-[200px] border border-dashed rounded-lg">
-            <p className="text-muted-foreground">No segments found for this table</p>
-          </div>
-        ) : (
-          <>
-            {/* Filters */}
-            <div className="flex flex-col sm:flex-row gap-4 mb-4">
-              <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search segments..."
-                  value={segmentSearch}
-                  onChange={(e) => setSegmentSearch(e.target.value)}
-                  className="pl-9"
-                />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Segment Status Table - Left (2/3 width) */}
+          <div className="lg:col-span-2">
+            {segmentsLoading ? (
+              <div className="space-y-3">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Skeleton key={i} className="h-12 w-full" />
+                ))}
               </div>
-              <Select value={segmentStatusFilter} onValueChange={setSegmentStatusFilter}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Filter by status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  {uniqueStatuses.map(status => (
-                    <SelectItem key={status} value={status}>{status}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {filteredSegments.length === 0 ? (
+            ) : segmentsError ? (
               <div className="flex items-center justify-center h-[200px] border border-dashed rounded-lg">
-                <p className="text-muted-foreground">No segments match your filters</p>
+                <p className="text-destructive">{segmentsError}</p>
+              </div>
+            ) : segments.length === 0 ? (
+              <div className="flex items-center justify-center h-[200px] border border-dashed rounded-lg">
+                <p className="text-muted-foreground">No segments found for this table</p>
+              </div>
+            ) : (
+              <>
+                {/* Filters */}
+                <div className="flex flex-col sm:flex-row gap-4 mb-4">
+                  <div className="relative flex-1 max-w-sm">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search segments..."
+                      value={segmentSearch}
+                      onChange={(e) => setSegmentSearch(e.target.value)}
+                      className="pl-9"
+                    />
+                  </div>
+                  <Select value={segmentStatusFilter} onValueChange={setSegmentStatusFilter}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Filter by status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Statuses</SelectItem>
+                      {uniqueStatuses.map(status => (
+                        <SelectItem key={status} value={status}>{status}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {filteredSegments.length === 0 ? (
+                  <div className="flex items-center justify-center h-[200px] border border-dashed rounded-lg">
+                    <p className="text-muted-foreground">No segments match your filters</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="rounded-md border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-[80%]">Segment Name</TableHead>
+                            <TableHead>Status</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {paginatedSegments.map((segment, index) => (
+                            <TableRow key={`${segment.name}-${index}`}>
+                              <TableCell className="font-mono text-sm">
+                                <Link
+                                  href={`/manage/${clusterId}/tables/${tableName}/segments/${encodeURIComponent(segment.name)}`}
+                                  className="hover:underline text-primary"
+                                >
+                                  {segment.name}
+                                </Link>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant={segment.status === "GOOD" || segment.status === "ONLINE" ? "default" : segment.status === "OFFLINE" ? "secondary" : "destructive"}>
+                                  {segment.status}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+
+                    {/* Pagination */}
+                    {totalSegmentPages > 1 && (
+                      <div className="flex items-center justify-end gap-2 mt-4">
+                        <span className="text-sm text-muted-foreground">
+                          Page {segmentPage} of {totalSegmentPages}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => setSegmentPage((p) => Math.max(1, p - 1))}
+                            disabled={segmentPage === 1}
+                          >
+                            <ChevronLeft className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => setSegmentPage((p) => Math.min(totalSegmentPages, p + 1))}
+                            disabled={segmentPage >= totalSegmentPages}
+                          >
+                            <ChevronRight className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Per-server segment counts table - Right (1/3 width) */}
+          <div>
+            <div className="text-sm font-medium flex items-center gap-2 mb-3">
+              <Server className="h-4 w-4" />
+              Segments per Server
+              {!serverSegmentsLoading && serverSegmentCounts.length > 0 && (
+                <span className="text-muted-foreground font-normal">({serverSegmentCounts.length})</span>
+              )}
+            </div>
+            {serverSegmentsLoading ? (
+              <div className="space-y-2">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="h-10 w-full" />
+                ))}
+              </div>
+            ) : serverSegmentCounts.length === 0 ? (
+              <div className="flex items-center justify-center h-[100px] border border-dashed rounded-lg">
+                <p className="text-muted-foreground text-sm">No server data available</p>
               </div>
             ) : (
               <>
@@ -663,26 +809,15 @@ export default function TableDetailPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-[80%]">Segment Name</TableHead>
-                        <TableHead>Status</TableHead>
+                        <TableHead>Server</TableHead>
+                        <TableHead className="w-[80px] text-right">Count</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {paginatedSegments.map((segment, index) => (
-                        <TableRow key={`${segment.name}-${index}`}>
-                          <TableCell className="font-mono text-sm">
-                            <Link
-                              href={`/manage/${clusterId}/tables/${tableName}/segments/${encodeURIComponent(segment.name)}`}
-                              className="hover:underline text-primary"
-                            >
-                              {segment.name}
-                            </Link>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={segment.status === "GOOD" || segment.status === "ONLINE" ? "default" : segment.status === "OFFLINE" ? "secondary" : "destructive"}>
-                              {segment.status}
-                            </Badge>
-                          </TableCell>
+                      {paginatedServerSegmentCounts.map(({ server, count }) => (
+                        <TableRow key={server}>
+                          <TableCell className="font-mono text-xs">{server}</TableCell>
+                          <TableCell className="text-right font-medium tabular-nums">{count}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -690,37 +825,37 @@ export default function TableDetailPage() {
                 </div>
 
                 {/* Pagination */}
-                {totalSegmentPages > 1 && (
-                  <div className="flex items-center justify-end gap-2 mt-4">
-                    <span className="text-sm text-muted-foreground">
-                      Page {segmentPage} of {totalSegmentPages}
+                {totalServerPages > 1 && (
+                  <div className="flex items-center justify-end gap-2 mt-3">
+                    <span className="text-xs text-muted-foreground">
+                      {serverPage} / {totalServerPages}
                     </span>
                     <div className="flex items-center gap-1">
                       <Button
                         variant="outline"
                         size="icon"
-                        className="h-8 w-8"
-                        onClick={() => setSegmentPage((p) => Math.max(1, p - 1))}
-                        disabled={segmentPage === 1}
+                        className="h-7 w-7"
+                        onClick={() => setServerPage((p) => Math.max(1, p - 1))}
+                        disabled={serverPage === 1}
                       >
-                        <ChevronLeft className="h-4 w-4" />
+                        <ChevronLeft className="h-3 w-3" />
                       </Button>
                       <Button
                         variant="outline"
                         size="icon"
-                        className="h-8 w-8"
-                        onClick={() => setSegmentPage((p) => Math.min(totalSegmentPages, p + 1))}
-                        disabled={segmentPage >= totalSegmentPages}
+                        className="h-7 w-7"
+                        onClick={() => setServerPage((p) => Math.min(totalServerPages, p + 1))}
+                        disabled={serverPage >= totalServerPages}
                       >
-                        <ChevronRight className="h-4 w-4" />
+                        <ChevronRight className="h-3 w-3" />
                       </Button>
                     </div>
                   </div>
                 )}
               </>
             )}
-          </>
-        )}
+          </div>
+        </div>
       </div>
     </div>
   )
