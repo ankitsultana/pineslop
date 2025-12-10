@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
 import { useParams, useSearchParams } from "next/navigation"
 import { Layers, Search, ChevronLeft, ChevronRight, Check, X, Server, FileText, HardDrive, Clock, Download, Copy } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -9,6 +10,14 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb"
 import {
   Table,
   TableBody,
@@ -275,13 +284,39 @@ export default function SegmentDetailPage() {
   return (
     <div className="p-6">
       <div className="mb-6">
-        <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
-          <a href={`/manage/${clusterId}/tables`} className="hover:underline">Tables</a>
-          <span>/</span>
-          <a href={`/manage/${clusterId}/tables/${tableName}`} className="hover:underline">{tableName}</a>
-          <span>/</span>
-          <span className="truncate max-w-[300px]" title={segmentName}>{segmentName}</span>
-        </div>
+        <Breadcrumb className="mb-4">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link href={`/manage/${clusterId}`}>{clusterId}</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link href={`/manage/${clusterId}/tables`}>Tables</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link href={`/manage/${clusterId}/tables/${tableName}`}>{tableName}</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link href={`/manage/${clusterId}/tables/${tableName}`}>Segments</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage className="truncate max-w-[300px]" title={segmentName}>
+                {segmentName}
+              </BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
         <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
           <Layers className="h-6 w-6" />
           <span className="truncate" title={segmentName}>{segmentName}</span>

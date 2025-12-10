@@ -177,7 +177,7 @@ export default function MySidebar() {
                 <SidebarMenuButton asChild className={cn(pathname.startsWith('/manage') && "bg-sidebar-accent text-sidebar-accent-foreground")}>
                   <a href="/manage">
                     <Settings className="bg-[rgba(0,0,0,0.32)] fill-white stroke-white p-1 rounded size-5!" />
-                    <span>Manage</span>
+                    <span>Browse</span>
                   </a>
                 </SidebarMenuButton>
               </SidebarMenuItem>

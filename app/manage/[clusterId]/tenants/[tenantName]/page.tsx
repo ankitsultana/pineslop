@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
 import { useParams, useSearchParams } from "next/navigation"
 import { Server, Network, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, Search, Users } from "lucide-react"
 import {
@@ -22,6 +23,14 @@ import {
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb"
 
 type SortOrder = "asc" | "desc"
 
@@ -136,11 +145,25 @@ export default function TenantDetailPage() {
   return (
     <div className="p-6">
       <div className="mb-6">
-        <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
-          <a href={`/manage/${clusterId}/tenants`} className="hover:underline">Tenants</a>
-          <span>/</span>
-          <span>{tenantName}</span>
-        </div>
+        <Breadcrumb className="mb-4">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link href={`/manage/${clusterId}`}>{clusterId}</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link href={`/manage/${clusterId}/tenants`}>Tenants</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>{tenantName}</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
         <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
           <Users className="h-6 w-6" />
           {tenantName}
