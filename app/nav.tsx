@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Moon, Sun, Github, BookOpen, ChevronsUpDown, Check, Server } from "lucide-react"
+import { Contrast, Github, BookOpen, ChevronsUpDown, Check, Server } from "lucide-react"
 import { useTheme } from "next-themes"
 
 import { Button } from "@/components/ui/button"
@@ -159,15 +159,7 @@ export function NavigationMenuDemo() {
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
           aria-label="Toggle theme"
         >
-          {mounted ? (
-            theme === "dark" ? (
-              <Sun className="size-4" />
-            ) : (
-              <Moon className="size-4" />
-            )
-          ) : (
-            <Sun className="size-4" />
-          )}
+          <Contrast className="size-4" />
         </Button>
       </div>
     </div>

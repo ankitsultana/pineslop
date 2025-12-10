@@ -2,7 +2,7 @@
 
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuAction, SidebarMenuButton, SidebarMenuItem, SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem, SidebarProvider, SidebarSeparator, SidebarTrigger } from "@/components/ui/sidebar";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu"
-import { ChevronsUpDown, Calendar, Inbox, Search, Settings, Network, ChevronDown, FolderTree, ChevronUp, ChartBar, ChartColumn, ChartLine, Fish, Bell, GlassWater, MessagesSquare, ChartBarStacked, ChartBarStackedIcon, BottleWine, MoreVertical, Rows4, ChartColumnBig, Blocks, Cuboid, Pin, ChartArea, ChartPie, ChartSpline, ChartSplineIcon, Columns, Tag } from "lucide-react"
+import { ChevronsUpDown, Calendar, Inbox, Search, Settings, Network, ChevronDown, FolderTree, ChevronUp, ChartBar, ChartColumn, ChartLine, Fish, Bell, GlassWater, MessagesSquare, ChartBarStacked, ChartBarStackedIcon, BottleWine, MoreVertical, Rows4, ChartColumnBig, Blocks, Cuboid, Pin, ChartArea, ChartPie, ChartSpline, ChartSplineIcon, Columns, Tag, SearchIcon, PlayIcon } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Inter_Tight } from "next/font/google";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -33,14 +33,14 @@ const items = [
   {
     title: "SQL Console",
     url: "/query",
-    icon: GlassWater,
+    icon: PlayIcon,
     style: "bg-[rgb(245,186,1)] fill-amber-50 stroke-white",
   },
   {
     title: "Visualize",
     url: "/visualize",
     icon: ChartLine,
-    style: "bg-[rgb(255,91,90)] fill-amber-50 stroke-white",
+    style: "bg-[rgb(255,91,90)] stroke-white stroke-[3.5]",
   }
 ]
 
