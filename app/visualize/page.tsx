@@ -64,6 +64,7 @@ import {
 import { TableIcon, PieChartIcon, LineChartIcon, BarChart3Icon, AreaChartIcon } from "lucide-react";
 
 const QUERY_STORAGE_KEY = "pakora-visualize-query";
+const LANGUAGE_STORAGE_KEY = "pakora-visualize-language";
 
 type TimeoutUnit = "ms" | "s";
 
@@ -702,12 +703,16 @@ export default function Visualize() {
   const [currentPage, setCurrentPage] = useState(0);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
 
-  // Load query from localStorage after mount (client-side only)
+  // Load query and language from localStorage after mount (client-side only)
   useEffect(() => {
     if (typeof window !== "undefined") {
       const savedQuery = localStorage.getItem(QUERY_STORAGE_KEY);
       if (savedQuery) {
         setQuery(savedQuery);
+      }
+      const savedLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+      if (savedLanguage) {
+        setSelectedLanguage(savedLanguage);
       }
       isInitialMount.current = false;
     }
@@ -719,6 +724,13 @@ export default function Visualize() {
       localStorage.setItem(QUERY_STORAGE_KEY, query);
     }
   }, [query]);
+
+  // Save language to localStorage whenever it changes (but not on initial mount)
+  useEffect(() => {
+    if (typeof window !== "undefined" && !isInitialMount.current) {
+      localStorage.setItem(LANGUAGE_STORAGE_KEY, selectedLanguage);
+    }
+  }, [selectedLanguage]);
 
   // Reset table settings when columns change
   const handleNewResults = useCallback((response: PinotQueryResponse) => {
@@ -905,7 +917,10 @@ export default function Visualize() {
   return (
     <div className="flex flex-col gap-4 w-full h-full p-4">
       <div className="flex flex-wrap items-end gap-4">
-        <DatasourceSelector />
+        <div className="flex flex-col gap-2">
+          <Label>Data Source</Label>
+          <DatasourceSelector />
+        </div>
         <div className="flex flex-col gap-2 min-w-[220px]">
           <Label>Query Language</Label>
           <Select
