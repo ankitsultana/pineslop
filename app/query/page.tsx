@@ -49,7 +49,7 @@ function QueryOptionsPanel({
   onTimeoutUnitChange,
 }: QueryOptionsPanelProps) {
   return (
-    <Card className="h-full">
+    <Card className="w-fit h-fit">
       <CardHeader>
         <CardTitle>Query Options</CardTitle>
       </CardHeader>
@@ -246,7 +246,7 @@ export default function MyQuery() {
               </div>
             </ResizablePanel>
             <ResizableHandle withHandle />
-            <ResizablePanel defaultSize={35} minSize={20} className="p-2">
+            <ResizablePanel defaultSize={25} minSize={15} className="p-2 flex items-start">
               <QueryOptionsPanel
                 timeoutValue={timeoutValue}
                 timeoutUnit={timeoutUnit}
