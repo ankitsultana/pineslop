@@ -80,6 +80,15 @@ export interface TimeSeriesQueryResponseWrapper {
   error: PinotQueryError | null;
 }
 
+export interface TimeSeriesRangeQueryParams {
+  language: string;
+  query: string;
+  start: number;
+  end: number;
+  step: string;
+  timeout?: string;
+}
+
 /**
  * Executes a SQL query against Apache Pinot
  * @param sql The SQL query to execute
@@ -176,6 +185,44 @@ export async function executePinotQuery(
 }
 
 /**
+ * Fetches available time series languages
+ */
+export async function fetchTimeSeriesLanguages(): Promise<string[]> {
+  try {
+    const response = await fetch("http://127.0.0.1:9000/timeseries/languages", {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+
+    if (Array.isArray(data)) {
+      return data.map(String);
+    }
+
+    if (Array.isArray((data as { languages?: unknown }).languages)) {
+      return (data as { languages: unknown[] }).languages.map(String);
+    }
+
+    throw new Error("Unexpected languages response shape");
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new PinotQueryError(
+        `Failed to fetch time series languages: ${error.message}`,
+      );
+    }
+
+    throw new PinotQueryError("Failed to fetch time series languages");
+  }
+}
+
+/**
  * Executes a time series query against Apache Pinot
  * @param query The PromQL query string
  * @param start Start time in epoch seconds
@@ -262,6 +309,94 @@ export async function executeTimeSeriesQuery(
       return {
         error: new PinotQueryError(
           `Failed to execute time series query: ${error.message}`
+        ),
+        response: null,
+      };
+    }
+
+    return {
+      error: new PinotQueryError("Failed to execute time series query: Unknown error"),
+      response: null,
+    };
+  }
+}
+
+/**
+ * Executes a time series query for non-SQL languages.
+ * Uses the /timeseries/api/v1/query_range endpoint.
+ */
+export async function executeTimeSeriesRangeQueryWithLanguage(
+  params: TimeSeriesRangeQueryParams,
+): Promise<TimeSeriesQueryResponseWrapper> {
+  const { language, query, start, end, step, timeout } = params;
+
+  try {
+    const url = new URL("http://127.0.0.1:9000/timeseries/api/v1/query_range");
+    url.searchParams.set("language", language);
+    url.searchParams.set("query", query);
+    url.searchParams.set("start", String(Math.floor(start)));
+    url.searchParams.set("end", String(Math.floor(end)));
+    url.searchParams.set("step", step);
+
+    if (timeout) {
+      url.searchParams.set("timeout", timeout);
+    }
+
+    const response = await fetch(url.toString(), {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+
+      try {
+        const errorData = await response.json();
+        if ((errorData as { error?: string }).error) {
+          errorMessage = (errorData as { error?: string }).error as string;
+        } else if ((errorData as { message?: string }).message) {
+          errorMessage = (errorData as { message?: string }).message as string;
+        }
+      } catch {
+        // Ignore JSON parsing errors and use default message
+      }
+
+      return {
+        error: new PinotQueryError(errorMessage, response.status),
+        response: null,
+      };
+    }
+
+    const data: TimeSeriesQueryResponse = await response.json();
+
+    if (data.status === "error") {
+      const errorMessage = data.error || data.errorType || "Unknown error";
+      return {
+        error: new PinotQueryError(
+          `Time series query failed: ${errorMessage}`,
+        ),
+        response: null,
+      };
+    }
+
+    return {
+      response: data,
+      error: null,
+    };
+  } catch (error) {
+    if (error instanceof PinotQueryError) {
+      return {
+        error,
+        response: null,
+      };
+    }
+
+    if (error instanceof Error) {
+      return {
+        error: new PinotQueryError(
+          `Failed to execute time series query: ${error.message}`,
         ),
         response: null,
       };

@@ -19,8 +19,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PinotResultTable, SortConfig, DEFAULT_PAGE_SIZE } from "@/app/models/result";
-import { executePinotQuery, PinotQueryError } from "@/app/utils/pinot";
-import type { PinotQueryResponse } from "@/app/utils/pinot";
+import {
+  executePinotQuery,
+  executeTimeSeriesRangeQueryWithLanguage,
+  fetchTimeSeriesLanguages,
+  PinotQueryError,
+} from "@/app/utils/pinot";
+import type {
+  PinotQueryResponse,
+  TimeSeriesMetric,
+  TimeSeriesQueryResponse,
+} from "@/app/utils/pinot";
 import MyQueryEditor from "../utils/editor";
 import {
   ResizableHandle,
@@ -74,11 +83,35 @@ const CHART_COLORS = [
   "hsl(210, 40%, 50%)",   // Slate Blue
 ];
 
+const DEFAULT_TIMESERIES_WINDOW_SECONDS = 60 * 60; // last 60 minutes
+const DEFAULT_TIMESERIES_STEP = "1m";
+
+type TimeRangeKey =
+  | "5m"
+  | "1h"
+  | "1d"
+  | "2d"
+  | "7d"
+  | "1mo"
+  | "1y";
+
+const TIME_RANGE_OPTIONS: Array<{ key: TimeRangeKey; label: string; seconds: number }> = [
+  { key: "5m", label: "Last 5 Minutes", seconds: 5 * 60 },
+  { key: "1h", label: "Last 1 Hour", seconds: 60 * 60 },
+  { key: "1d", label: "Last 1 Day", seconds: 24 * 60 * 60 },
+  { key: "2d", label: "Last 2 Days", seconds: 2 * 24 * 60 * 60 },
+  { key: "7d", label: "Last 7 Days", seconds: 7 * 24 * 60 * 60 },
+  { key: "1mo", label: "Last 1 Month", seconds: 30 * 24 * 60 * 60 },
+  { key: "1y", label: "Last 1 Year", seconds: 365 * 24 * 60 * 60 },
+];
+
 interface QueryOptionsPanelProps {
   timeoutValue: string;
   timeoutUnit: TimeoutUnit;
   onTimeoutValueChange: (value: string) => void;
   onTimeoutUnitChange: (unit: TimeoutUnit) => void;
+  selectedRangeKey: TimeRangeKey;
+  onRangeChange: (key: TimeRangeKey) => void;
 }
 
 function QueryOptionsPanel({
@@ -86,6 +119,8 @@ function QueryOptionsPanel({
   timeoutUnit,
   onTimeoutValueChange,
   onTimeoutUnitChange,
+  selectedRangeKey,
+  onRangeChange,
 }: QueryOptionsPanelProps) {
   return (
     <Card className="h-full">
@@ -125,6 +160,24 @@ function QueryOptionsPanel({
           <div className="flex items-center gap-2">
             <Checkbox id="terms" />
             <Label htmlFor="terms" className="cursor-pointer">Use Multistage Engine</Label>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="time-range">Time Range</Label>
+            <Select
+              value={selectedRangeKey}
+              onValueChange={(value) => onRangeChange(value as TimeRangeKey)}
+            >
+              <SelectTrigger id="time-range" className="min-w-[180px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {TIME_RANGE_OPTIONS.map((option) => (
+                  <SelectItem key={option.key} value={option.key}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </CardContent>
@@ -495,6 +548,11 @@ export default function Visualize() {
   const isInitialMount = useRef(true);
   const [timeoutValue, setTimeoutValue] = useState("");
   const [timeoutUnit, setTimeoutUnit] = useState<TimeoutUnit>("ms");
+  const [languages, setLanguages] = useState<string[]>(["sql"]);
+  const [selectedLanguage, setSelectedLanguage] = useState("sql");
+  const [languagesLoading, setLanguagesLoading] = useState(false);
+  const [languagesError, setLanguagesError] = useState<string | null>(null);
+  const [selectedRangeKey, setSelectedRangeKey] = useState<TimeRangeKey>("1h");
 
   // Visualization type
   const [visualizationType, setVisualizationType] = useState<VisualizationType>("table");
@@ -542,8 +600,85 @@ export default function Visualize() {
     setResults(response);
   }, [lastColumnSignature]);
 
+  const loadLanguages = useCallback(async () => {
+    setLanguagesLoading(true);
+    setLanguagesError(null);
+    try {
+      const fetched = await fetchTimeSeriesLanguages();
+      const combined = Array.from(new Set(["sql", ...fetched]));
+      setLanguages(combined);
+      setSelectedLanguage((current) =>
+        combined.includes(current) ? current : "sql"
+      );
+    } catch (err) {
+      console.error("Failed to fetch languages", err);
+      setLanguages(["sql"]);
+      setSelectedLanguage("sql");
+      setLanguagesError("Using SQL because languages could not be loaded.");
+    } finally {
+      setLanguagesLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadLanguages();
+  }, [loadLanguages]);
+
+  const formatMetricLabel = useCallback((metric: TimeSeriesMetric): string => {
+    const namePart = metric.__name__ ?? "";
+    const otherParts = Object.entries(metric)
+      .filter(([key]) => key !== "__name__")
+      .map(([key, value]) => `${key}=${value}`);
+
+    return [namePart, otherParts.join(",")].filter(Boolean).join(" ").trim() || "metric";
+  }, []);
+
+  const transformTimeSeriesResponse = useCallback((tsResponse: TimeSeriesQueryResponse): PinotQueryResponse => {
+    const rows: unknown[][] = [];
+    const results = tsResponse.data?.result ?? [];
+
+    results.forEach(({ metric, values }) => {
+      const metricLabel = formatMetricLabel(metric);
+      values.forEach(([timestamp, value]) => {
+        const numericValue = Number(value);
+        rows.push([
+          metricLabel,
+          timestamp,
+          Number.isFinite(numericValue) ? numericValue : value,
+        ]);
+      });
+    });
+
+    return {
+      exceptions: [],
+      minConsumingFreshnessTimeMs: 0,
+      numConsumingSegmentsQueried: 0,
+      numDocsScanned: rows.length,
+      numEntriesScannedInFilter: 0,
+      numEntriesScannedPostFilter: 0,
+      numGroupsLimitReached: false,
+      numSegmentsMatched: 0,
+      numSegmentsProcessed: 0,
+      numSegmentsQueried: 0,
+      numServersQueried: 0,
+      numServersResponded: 0,
+      resultTable: {
+        dataSchema: {
+          columnNames: ["metric", "timestamp", "value"],
+          columnDataTypes: ["STRING", "LONG", "DOUBLE"],
+        },
+        rows,
+      },
+      segmentStatistics: [],
+      timeUsedMs: 0,
+      totalDocs: rows.length,
+      traceInfo: {},
+    };
+  }, [formatMetricLabel]);
+
   const handleRunQuery = useCallback(async () => {
-    if (!query.trim()) return;
+    const trimmedQuery = query.trim();
+    if (!trimmedQuery) return;
 
     setLoading(true);
     setError(null);
@@ -557,19 +692,46 @@ export default function Visualize() {
     }
 
     try {
-      const { response, error: queryError } = await executePinotQuery(
-        query,
-        timeoutMs,
-      );
+      if (selectedLanguage === "sql") {
+        const { response, error: queryError } = await executePinotQuery(
+          trimmedQuery,
+          timeoutMs,
+        );
 
-      if (queryError) {
-        setError(queryError);
-      }
+        if (queryError) {
+          setError(queryError);
+        }
 
-      if (response) {
-        handleNewResults(response);
+        if (response) {
+          handleNewResults(response);
+        } else {
+          setResults(null);
+        }
       } else {
-        setResults(null);
+        const end = Math.floor(Date.now() / 1000);
+        const durationSeconds =
+          TIME_RANGE_OPTIONS.find((opt) => opt.key === selectedRangeKey)?.seconds ??
+          DEFAULT_TIMESERIES_WINDOW_SECONDS;
+        const start = end - durationSeconds;
+
+        const { response, error: queryError } = await executeTimeSeriesRangeQueryWithLanguage({
+          language: selectedLanguage,
+          query: trimmedQuery,
+          start,
+          end,
+          step: DEFAULT_TIMESERIES_STEP,
+        });
+
+        if (queryError) {
+          setError(queryError);
+        }
+
+        if (response) {
+          const normalized = transformTimeSeriesResponse(response);
+          handleNewResults(normalized);
+        } else {
+          setResults(null);
+        }
       }
     } catch (error) {
       console.error("Error executing query:", error);
@@ -582,7 +744,7 @@ export default function Visualize() {
     } finally {
       setLoading(false);
     }
-  }, [query, timeoutUnit, timeoutValue, handleNewResults]);
+  }, [query, timeoutUnit, timeoutValue, handleNewResults, selectedLanguage, transformTimeSeriesResponse]);
 
   // Add keyboard shortcut for Cmd+Enter (or Ctrl+Enter) to run query
   useEffect(() => {
@@ -606,7 +768,31 @@ export default function Visualize() {
 
   return (
     <div className="flex flex-col gap-4 w-full h-full p-4">
-      <DatasourceSelector />
+      <div className="flex flex-wrap items-end gap-4">
+        <DatasourceSelector />
+        <div className="flex flex-col gap-2 min-w-[220px]">
+          <Label>Query Language</Label>
+          <Select
+            value={selectedLanguage}
+            onValueChange={setSelectedLanguage}
+            disabled={languagesLoading}
+          >
+            <SelectTrigger className="w-[220px]" aria-label="Query language">
+              <SelectValue placeholder="Select language" />
+            </SelectTrigger>
+            <SelectContent>
+              {languages.map((lang) => (
+                <SelectItem key={lang} value={lang}>
+                  {lang.toUpperCase()}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {languagesError && (
+            <p className="text-xs text-muted-foreground">{languagesError}</p>
+          )}
+        </div>
+      </div>
       <ResizablePanelGroup
         direction="vertical"
         className="min-h-[400px]"
@@ -642,6 +828,8 @@ export default function Visualize() {
                 timeoutUnit={timeoutUnit}
                 onTimeoutValueChange={setTimeoutValue}
                 onTimeoutUnitChange={setTimeoutUnit}
+                selectedRangeKey={selectedRangeKey}
+                onRangeChange={setSelectedRangeKey}
               />
             </ResizablePanel>
           </ResizablePanelGroup>
