@@ -46,6 +46,12 @@ export function NavigationMenuDemo() {
   // Check if we're on a manage route
   const isManageRoute = pathname.startsWith("/manage/") && currentCluster
 
+  // Check if we're on the query page
+  const isQueryRoute = pathname === "/query"
+
+  // Check if we're on the visualize page
+  const isVisualizeRoute = pathname === "/visualize"
+
   React.useEffect(() => {
     setMounted(true)
   }, [])
@@ -79,8 +85,14 @@ export function NavigationMenuDemo() {
 
   return (
     <div className="flex items-center justify-between w-full">
-      {/* Left side - Cluster selector (only on manage routes) */}
+      {/* Left side - Page header or Cluster selector */}
       <div className="flex items-center gap-2">
+        {isQueryRoute && (
+          <h1 className="text-lg font-semibold">SQL Console</h1>
+        )}
+        {isVisualizeRoute && (
+          <h1 className="text-lg font-semibold">Visualize</h1>
+        )}
         {isManageRoute && (
           <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
