@@ -2,7 +2,7 @@
 
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuAction, SidebarMenuButton, SidebarMenuItem, SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem, SidebarProvider, SidebarSeparator, SidebarTrigger } from "@/components/ui/sidebar";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu"
-import { ChevronsUpDown, Calendar, Inbox, Search, Settings, Network, ChevronDown, FolderTree, ChevronUp, ChartBar, ChartColumn, ChartLine, Fish, Bell, GlassWater, MessagesSquare, ChartBarStacked, ChartBarStackedIcon, BottleWine, MoreVertical, Rows4, ChartColumnBig, Blocks, Cuboid, Pin, ChartArea, ChartPie, ChartSpline, ChartSplineIcon, Columns } from "lucide-react"
+import { ChevronsUpDown, Calendar, Inbox, Search, Settings, Network, ChevronDown, FolderTree, ChevronUp, ChartBar, ChartColumn, ChartLine, Fish, Bell, GlassWater, MessagesSquare, ChartBarStacked, ChartBarStackedIcon, BottleWine, MoreVertical, Rows4, ChartColumnBig, Blocks, Cuboid, Pin, ChartArea, ChartPie, ChartSpline, ChartSplineIcon, Columns, Tag } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Inter_Tight } from "next/font/google";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -154,6 +154,16 @@ export default function MySidebar() {
                   <a href="/saved-queries">
                     <Pin className="bg-[rgba(254,57,57,0.82)] fill-amber-50 stroke-white p-1 rounded size-5!" />
                     <span>Saved Queries</span>
+                  </a>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <a href="/named-entities">
+                    <Tag className="bg-[rgba(100,116,139,0.82)] fill-amber-50 stroke-white p-1 rounded size-5!" />
+                    <span>Named Entities</span>
                   </a>
                 </SidebarMenuButton>
               </SidebarMenuItem>
