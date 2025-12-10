@@ -1,7 +1,7 @@
 "use client"
 
 import { DatasourceSelector } from "@/components/datasource-selector"
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, Fragment } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Alert,
@@ -258,6 +258,12 @@ interface ChartData {
   fill: string;
 }
 
+interface TimeSeriesPoint {
+  ts: number;
+  tsLabel: string;
+  [metricName: string]: number | string;
+}
+
 function prepareChartData(
   response: PinotQueryResponse,
   labelColumn: number,
@@ -281,6 +287,11 @@ function generateChartConfig(data: ChartData[]): ChartConfig {
     };
   });
   return config;
+}
+
+function formatTimestamp(tsMs: number): string {
+  const date = new Date(tsMs);
+  return date.toLocaleString();
 }
 
 interface VisualizationPanelProps {
@@ -311,6 +322,11 @@ function VisualizationPanel({
   onPageSizeChange,
 }: VisualizationPanelProps) {
   const { columnNames, columnDataTypes } = response.resultTable.dataSchema;
+  const isTimeSeries = useMemo(() => {
+    if (columnNames.length !== 3) return false;
+    const lowered = columnNames.map((name) => name.toLowerCase());
+    return lowered[0] === "metric" && lowered[1] === "timestamp" && lowered[2] === "value";
+  }, [columnNames]);
   
   // Find best default columns for charts
   const [labelColumn, setLabelColumn] = useState(() => {
@@ -337,11 +353,44 @@ function VisualizationPanel({
     prepareChartData(response, labelColumn, valueColumn),
     [response, labelColumn, valueColumn]
   );
+
+  const timeSeriesData = useMemo(() => {
+    if (!isTimeSeries) return null;
+    const rows = response.resultTable.rows;
+    const metrics = new Set<string>();
+    const map = new Map<number, TimeSeriesPoint>();
+
+    rows.forEach((row) => {
+      const metric = String(row[0] ?? "metric");
+      const tsSeconds = Number(row[1]);
+      const valueRaw = row[2];
+      const value = Number(valueRaw);
+      metrics.add(metric);
+
+      if (!Number.isFinite(tsSeconds)) return;
+      const tsMs = tsSeconds * 1000;
+      const entry = map.get(tsMs) ?? { ts: tsMs, tsLabel: formatTimestamp(tsMs) };
+      entry[metric] = Number.isFinite(value) ? value : valueRaw;
+      map.set(tsMs, entry);
+    });
+
+    const data = Array.from(map.values()).sort((a, b) => a.ts - b.ts);
+    return { data, metrics: Array.from(metrics) };
+  }, [isTimeSeries, response.resultTable.rows]);
   
-  const chartConfig = useMemo(() => 
-    generateChartConfig(chartData),
-    [chartData]
-  );
+  const chartConfig = useMemo(() => {
+    if (timeSeriesData) {
+      const config: ChartConfig = {};
+      timeSeriesData.metrics.forEach((metric, index) => {
+        config[metric] = {
+          label: metric,
+          color: CHART_COLORS[index % CHART_COLORS.length],
+        };
+      });
+      return config;
+    }
+    return generateChartConfig(chartData);
+  }, [chartData, timeSeriesData]);
 
   const valueColumnName = columnNames[valueColumn];
 
@@ -469,30 +518,70 @@ function VisualizationPanel({
         <Card>
           <CardContent className="pt-6">
             <ChartContainer config={chartConfig} className="h-[400px] w-full">
-              <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis
-                  dataKey="name"
-                  tickLine={false}
-                  axisLine={false}
-                  angle={-45}
-                  textAnchor="end"
-                  height={80}
-                  interval={0}
-                  tick={{ fontSize: 12 }}
-                />
-                <YAxis tickLine={false} axisLine={false} />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Line 
-                  type="monotone" 
-                  dataKey="value" 
-                  stroke={CHART_COLORS[0]}
-                  strokeWidth={2}
-                  dot={{ fill: CHART_COLORS[0], strokeWidth: 2 }}
-                  activeDot={{ r: 6 }}
-                  name={valueColumnName}
-                />
-              </LineChart>
+              {timeSeriesData ? (
+                <LineChart data={timeSeriesData.data} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis
+                    dataKey="ts"
+                    type="number"
+                    domain={["auto", "auto"]}
+                    tickFormatter={(value) => formatTimestamp(Number(value))}
+                    tickLine={false}
+                    axisLine={false}
+                    height={70}
+                    tick={{ fontSize: 12 }}
+                  />
+                  <YAxis tickLine={false} axisLine={false} />
+                  <ChartTooltip
+                    content={
+                      <ChartTooltipContent
+                        labelFormatter={(value) => formatTimestamp(Number(value))}
+                      />
+                    }
+                  />
+                  {timeSeriesData.metrics.map((metric) => {
+                    const color = chartConfig[metric]?.color ?? CHART_COLORS[0];
+                    return (
+                      <Line
+                        key={metric}
+                        type="monotone"
+                        dataKey={metric}
+                        stroke={color}
+                        strokeWidth={2}
+                        dot={{ fill: color, strokeWidth: 2 }}
+                        activeDot={{ r: 6 }}
+                        name={metric}
+                        connectNulls
+                      />
+                    );
+                  })}
+                </LineChart>
+              ) : (
+                <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis
+                    dataKey="name"
+                    tickLine={false}
+                    axisLine={false}
+                    angle={-45}
+                    textAnchor="end"
+                    height={80}
+                    interval={0}
+                    tick={{ fontSize: 12 }}
+                  />
+                  <YAxis tickLine={false} axisLine={false} />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Line 
+                    type="monotone" 
+                    dataKey="value" 
+                    stroke={CHART_COLORS[0]}
+                    strokeWidth={2}
+                    dot={{ fill: CHART_COLORS[0], strokeWidth: 2 }}
+                    activeDot={{ r: 6 }}
+                    name={valueColumnName}
+                  />
+                </LineChart>
+              )}
             </ChartContainer>
           </CardContent>
         </Card>
@@ -502,35 +591,82 @@ function VisualizationPanel({
         <Card>
           <CardContent className="pt-6">
             <ChartContainer config={chartConfig} className="h-[400px] w-full">
-              <AreaChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis
-                  dataKey="name"
-                  tickLine={false}
-                  axisLine={false}
-                  angle={-45}
-                  textAnchor="end"
-                  height={80}
-                  interval={0}
-                  tick={{ fontSize: 12 }}
-                />
-                <YAxis tickLine={false} axisLine={false} />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <defs>
-                  <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={CHART_COLORS[0]} stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor={CHART_COLORS[0]} stopOpacity={0.1}/>
-                  </linearGradient>
-                </defs>
-                <Area 
-                  type="monotone" 
-                  dataKey="value" 
-                  stroke={CHART_COLORS[0]}
-                  strokeWidth={2}
-                  fill="url(#colorValue)"
-                  name={valueColumnName}
-                />
-              </AreaChart>
+              {timeSeriesData ? (
+                <AreaChart data={timeSeriesData.data} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis
+                    dataKey="ts"
+                    type="number"
+                    domain={["auto", "auto"]}
+                    tickFormatter={(value) => formatTimestamp(Number(value))}
+                    tickLine={false}
+                    axisLine={false}
+                    height={70}
+                    tick={{ fontSize: 12 }}
+                  />
+                  <YAxis tickLine={false} axisLine={false} />
+                  <ChartTooltip
+                    content={
+                      <ChartTooltipContent
+                        labelFormatter={(value) => formatTimestamp(Number(value))}
+                      />
+                    }
+                  />
+                  {timeSeriesData.metrics.map((metric, index) => {
+                    const color = chartConfig[metric]?.color ?? CHART_COLORS[index % CHART_COLORS.length];
+                    const gradientId = `colorValue-${metric}`;
+                    return (
+                      <Fragment key={metric}>
+                        <defs>
+                          <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor={color} stopOpacity={0.8}/>
+                            <stop offset="95%" stopColor={color} stopOpacity={0.1}/>
+                          </linearGradient>
+                        </defs>
+                        <Area 
+                          type="monotone" 
+                          dataKey={metric}
+                          stroke={color}
+                          strokeWidth={2}
+                          fill={`url(#${gradientId})`}
+                          name={metric}
+                          connectNulls
+                        />
+                      </Fragment>
+                    );
+                  })}
+                </AreaChart>
+              ) : (
+                <AreaChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis
+                    dataKey="name"
+                    tickLine={false}
+                    axisLine={false}
+                    angle={-45}
+                    textAnchor="end"
+                    height={80}
+                    interval={0}
+                    tick={{ fontSize: 12 }}
+                  />
+                  <YAxis tickLine={false} axisLine={false} />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <defs>
+                    <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={CHART_COLORS[0]} stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor={CHART_COLORS[0]} stopOpacity={0.1}/>
+                    </linearGradient>
+                  </defs>
+                  <Area 
+                    type="monotone" 
+                    dataKey="value" 
+                    stroke={CHART_COLORS[0]}
+                    strokeWidth={2}
+                    fill="url(#colorValue)"
+                    name={valueColumnName}
+                  />
+                </AreaChart>
+              )}
             </ChartContainer>
           </CardContent>
         </Card>
