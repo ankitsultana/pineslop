@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
-import { Server, Table2, ChevronRight, Loader2, Users } from "lucide-react"
+import { Server, Table2, ChevronRight, Loader2, Users, FolderTree } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
 interface ClusterStats {
@@ -136,6 +136,25 @@ export default function ManageClusterPage() {
                   </CardDescription>
                 </>
               )}
+            </CardContent>
+          </Card>
+        </Link>
+
+        {/* Zookeeper Card */}
+        <Link href={`/manage/${clusterId}/zk`}>
+          <Card className="cursor-pointer transition-colors hover:bg-accent hover:text-accent-foreground">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <FolderTree className="h-4 w-4 text-muted-foreground" />
+                Zookeeper
+              </CardTitle>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-lg font-medium">Browse ZK Tree</div>
+              <CardDescription>
+                Explore cluster metadata and configuration
+              </CardDescription>
             </CardContent>
           </Card>
         </Link>
